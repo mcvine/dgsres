@@ -1,0 +1,19 @@
+name: Si
+chemical_formula: Si2
+lattice: 
+ constants: 5.490700041, 5.490700041, 5.490700041, 90, 90, 90
+ basis_vectors:
+  - 5.490700041, 0, 0
+  - 0, 5.490700041, 0
+  - 0, 0, 5.490700041
+ primitive_basis_vectors:
+  - 0.0, 2.71526503565, 2.71526503565
+  - 2.71526503565, 0.0, 2.71526503565
+  - 2.71526503565, 2.71526503565, 0.0
+excitations:
+ - type: DGSresolution
+orientation:
+ u: -1, 1, -1
+ v: 2, 1, -1
+shape: hollowCylinder in_radius="5./8*inch" out_radius="1.*inch" height="1.5*inch"
+temperature: 100*K
