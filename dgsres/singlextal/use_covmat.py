@@ -2,8 +2,11 @@
 
 # # Resolution Calculation using Covariance Matrix
 
+
+NSEGMENTS_SOLVE_PSI = 100
+
 # from matplotlib import pyplot as plt
-import numpy as np, mcvine
+import numpy as np, scipy.linalg, mcvine
 import mcvine.cli
 # from mcvine_workflow.DGS import ARCS
 # import histogram.hdf as hh, histogram as H
@@ -63,7 +66,7 @@ def compute(
     from mcvine_workflow.singlextal.solve_psi import solve
     results = solve(
         xtalori, Ei, hkl, E, psimin, psimax,
-        Nsegments = 100)
+        Nsegments = NSEGMENTS_SOLVE_PSI)
     from mcvine_workflow.singlextal.coords_transform import hkl2Q
     for r in results:
         xtalori.psi = r*np.pi/180
@@ -82,10 +85,10 @@ def compute(
     # print Q
     # print hkl2Q_mat
     #
-    Q_len = np.linalg.norm(Q); print Q_len
-    ki = Conv.e2k(Ei); print ki
+    Q_len = np.linalg.norm(Q); # print Q_len
+    ki = Conv.e2k(Ei); # print ki
     kiv = np.array([ki, 0, 0])
-    kfv = kiv - Q; print kfv
+    kfv = kiv - Q; # print kfv
     #
     # ** Verify the momentum and energy transfers **
     # print Ei-Conv.k2e(np.linalg.norm(kfv))
@@ -185,15 +188,15 @@ def compute(
     # * ** FWHM is 2.355 sigma **
 
     # ## Include Q
-    print "ti=",ti
-    tf = L_SD/vf*1e6; print "tf=",tf
+    # print "ti=",ti
+    tf = L_SD/vf*1e6; # print "tf=",tf
     thetai = 0
     phii = 0
-    print "R=", R
-    print "Q=", Q
+    # print "R=", R
+    # print "Q=", Q
 
-    eeta = np.arctan2(Q[1], Q[0])
-    print "eeta=", eeta
+    eeta = np.arctan2(kfv[1], kfv[0])
+    # print "eeta=", eeta
 
     pQx_pt = -m/hbar*(L_PM/ti/ti/mus/mus*cos(thetai)*cos(phii)
                       +R/tf/tf/mus/mus*L_MS/L_PM*cos(eeta))
@@ -322,8 +325,6 @@ def compute(
     M = np.linalg.inv(cov)
     # print M
 
-    np.dot(cov, M)
-
     # ## Ellipsoid
     # hkl = hkl0+hkl_dir*x
     # dh,dk,dl = dx2dhkl*dx 
@@ -340,7 +341,7 @@ def compute(
                             [ 0.        ,  0.,          0.,  1]
                             ])
 
-    np.dot([1,1], dxdE2dQdE)
+    # np.dot([1,1], dxdE2dQdE)
 
     # $ [dX1,\; dX2,\; dX3,\; dX4]\; M\; [dX1,\; dX2,\; dX3,\; dX4 ]^T = 2ln(2)$
     # 
@@ -362,7 +363,13 @@ def compute(
     r = np.linalg.eig(N)
     mR = r[1]; lambdas = r[0]
     # print np.dot(mR, mR.T)
-    np.dot(np.dot(mR.T, N), mR)
+    # print np.dot(np.dot(mR.T, N), mR)
+
+    # Make 4-D inverse covariance matrix:
+    InvCov4D = UMUT = np.dot(U, np.dot(M, U.T))
+    hklE2QE = scipy.linalg.block_diag(hkl2Q_mat, 1.)
+    InvCov4D = np.dot(np.dot(hklE2QE, InvCov4D), hklE2QE.T)
+    # print np.dot(cov, M) # should be Eye
 
     # $ u = [dx,\;dE]$
     # 
@@ -410,7 +417,11 @@ def compute(
         # plt.xlim(-.35, .1)
         # plt.ylim(-5., 5.)
         plt.show()
-    # ellipsoid coordinates, eigen vectors and eigen values of the scaled inverse covariance
-    return u, mR, lambdas
+    # u: 2D ellipsoid coordinates
+    # mR: 2D eigen vectors
+    # lambdas: and 2D eigen values of the scaled inverse covariance
+    # QxQyQzE_cov: 4D covariance matrix for Qx,Qy,Qz,E in instrument coordinate system
+    # hklE_inv_cov: inverse 4D covariance matrix for hklE
+    return dict(u=u, mR=mR, lambdas=lambdas, QxQyQzE_cov=cov, hklE_inv_cov=InvCov4D)
 
 
