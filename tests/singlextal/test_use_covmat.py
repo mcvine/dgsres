@@ -3,7 +3,7 @@
 # Jiao Lin <jiao.lin@gmail.com>
 
 import mcvine.cli
-from mcvine_workflow.singlextal.resolution import use_covmat
+from dgsres.singlextal import use_covmat
 
 import numpy as np
 

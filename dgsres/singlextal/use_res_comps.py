@@ -50,7 +50,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     Ei, t0 = computeEi_and_t0(beam, instrument)
     log.write( "Ei=%s, t0=%s\n" % (Ei, t0) )
     # load sample
-    from ...sample import loadSampleYml
+    from mcvine_workflow.sample import loadSampleYml
     sample = loadSampleYml(sampleyml)
     # the sample kernel need information of E and hkl
     Q, hkl2Qmat, psi = calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10)
@@ -92,7 +92,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     kernel.tof_at_target = "%s*microsecond" % (t_m2p*1e6)
     kernel.dtof = "%s*microsecond" % (dtof*1e6,)
     # create sample assembly
-    from ..scaffolding import createSampleAssembly
+    from mcvine_workflow.singlextal.scaffolding import createSampleAssembly
     sampledir = os.path.abspath(os.path.join(outdir, 'sample'))
     createSampleAssembly(sampledir, sample, add_elastic_line=False)
     # create sim script
@@ -118,7 +118,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
 sim_script_template = """#!/usr/bin/env python
 import mcvine.cli
 from numpy import array
-from mcvine_workflow.singlextal.resolution import use_res_comps as urc
+from dgsres.singlextal import use_res_comps as urc
 beam_neutrons_path = %(beam_neutrons_path)r
 instrument = urc.instrument(%(instr_name)r, %(instr_dr)r, %(instr_L_m2s)r, %(instr_s2b)r)
 samplexmlpath = %(samplexmlpath)r
@@ -161,15 +161,15 @@ def computePixelPosition(kfv, instrument, log):
     return pixel_pos
 
 def calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10):
-    from ..io import loadXtalOriFromSampleYml
+    from mcvine_workflow.singlextal.io import loadXtalOriFromSampleYml
     xtalori = loadXtalOriFromSampleYml(sampleyml)
     psimin, psimax, dpsi = psi_axis.min, psi_axis.max, psi_axis.step
-    from ..solve_psi import solve
+    from mcvine_workflow.singlextal.solve_psi import solve
     results = solve(
         xtalori, Ei, hkl, E, psi_min=psimin, psi_max=psimax,
         Nsegments = Npsisegments)
     assert len(results)
-    from ...singlextal.coords_transform import hkl2Q
+    from mcvine_workflow.singlextal.coords_transform import hkl2Q
     r0 = results[0]
     psi_in_degrees = r0
     xtalori.psi = psi = r0*np.pi/180.

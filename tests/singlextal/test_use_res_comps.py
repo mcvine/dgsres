@@ -3,7 +3,8 @@
 # Jiao Lin <jiao.lin@gmail.com>
 
 import mcvine.cli
-from mcvine_workflow.singlextal.resolution import use_res_comps
+import dgsres
+from dgsres.singlextal import use_res_comps
 
 import numpy as np
 
@@ -13,7 +14,7 @@ def test_setup():
     E = 40.
     hkl = [-16/3.,-8/3.,8/3.]
     hkl_projection = np.array([-1.,1.,-1.])/3
-    psi_axis = -5, 90., 0.5
+    psi_axis = dgsres.axis(min=-5, max=90., step=0.5)
     instrument = use_res_comps.instrument(
         name = 'ARCS',
         detsys_radius = "3.*meter",
