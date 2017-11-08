@@ -4,33 +4,38 @@
 #
 
 """
+Tools to run mcvine simulation that computes the resolution function.
+The idea is to first calculate the position of the pixel that corresponds
+to a point hklE and also create a "resolution sample" that scatters
+neutrons to that pixel.
+Then a mcvine simulation is done using precalculated beam,  the sample,
+and the pixel.
+The simulated neutrons are gathered into events with hklE coordinates,
+which can be hisogrammed to resolution function.
+
+The procedure is to 
+* Setup the simulation
+* Run the simulation
+
+MC parameters:
+* MC parameters are used to control the Monte Carlo aspect of the simulation
+* They can be independently set by an yml file called mc_params.yml. Parameters:
+  - Nbuffer
+  - Nrounds_beam
+* The file needs to be present in the simulation directory ("outdir" of setup method)
+
 Limitations:
 * assume cylindrical arrangement of det tubes for the det system
 
-Inputs
+Inputs:
 
 * sample assembly
-  - shape
-  - material (??.xyz)
-  - pixel position
-  - pixel radius
-  - tof at pixel
-  - dtof
-* beam_path
-  - a quick simulation to generate event nexus file and let mantid compute t0 and Ei?
-    - t0
-    - Ei
+* beam
 * dynamics
-  - E
-  - hkl
-  - sample.yml
   - from these compute Q in instrument coordinate system (z vertical up)
     and also hkl2Q matrix
-* L_m2s
-* pixel_pos (this was calculated using R=3, cylinder)
-* pixel_pressure, radius, height
-* distance from saved neutrons to sample position
-* Nbuffer
+* instrument geometry info
+* pixel
 """
 
 import os, sys, numpy as np, mcvine
@@ -42,6 +47,24 @@ from . import instrument, pixel
 
 
 def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument, pixel, log=None):
+    """setup the simulation directory and scripts and input files
+
+    - outdir: output dir
+    - sampleyml: path. should contain
+      * name
+      * chemical_formula
+      * lattice
+      * orientation
+      * shape
+    - beam: mcvine beam simulation path
+    - E: energy transfer
+    - hkl: momentum transfer
+    - hkl_projection: hkl projection axis for slice
+    - psi_axis: psi scan
+    - instrument: instrument object with geometry data such as L1 and L2
+    - pixel: pixel object with pixe, height, pressure. and position
+    - log: logger object
+    """
     if log is None:
         import sys
         log = sys.stdout
@@ -50,7 +73,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     Ei, t0 = computeEi_and_t0(beam, instrument)
     log.write( "Ei=%s, t0=%s\n" % (Ei, t0) )
     # load sample
-    from mcvine_workflow.sample import loadSampleYml
+    from mcvine.workflow.sample import loadSampleYml
     sample = loadSampleYml(sampleyml)
     # the sample kernel need information of E and hkl
     Q, hkl2Qmat, psi = calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10)
@@ -92,7 +115,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     kernel.tof_at_target = "%s*microsecond" % (t_m2p*1e6)
     kernel.dtof = "%s*microsecond" % (dtof*1e6,)
     # create sample assembly
-    from mcvine_workflow.singlextal.scaffolding import createSampleAssembly
+    from mcvine.workflow.singlextal.scaffolding import createSampleAssembly
     sampledir = os.path.abspath(os.path.join(outdir, 'sample'))
     createSampleAssembly(sampledir, sample, add_elastic_line=False)
     # create sim script
@@ -119,6 +142,7 @@ sim_script_template = """#!/usr/bin/env python
 import mcvine.cli
 from numpy import array
 from dgsres.singlextal import use_res_comps as urc
+# parameters
 beam_neutrons_path = %(beam_neutrons_path)r
 instrument = urc.instrument(%(instr_name)r, %(instr_dr)r, %(instr_L_m2s)r, %(instr_s2b)r)
 samplexmlpath = %(samplexmlpath)r
@@ -130,9 +154,19 @@ t_m2p = %(t_m2p)r
 Q = %(Q)r
 E = %(E)r
 hkl_projection = %(hkl_projection)r
+# mc parameters
+mc_p_path = './mc_params.yml'
+import yaml, os
+if os.path.exists(mc_p_path):
+    mc_params = yaml.load(open(mc_p_path))
+else:
+    mc_params = dict(Nbuffer=10000, Nrounds_beam=1)
+Nbuffer = 100000
+Nrounds_beam = 1
+# run
 urc.run(
     beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
-    Q, E, hkl_projection, Nbuffer=100000)
+    Q, E, hkl_projection, **mc_params)
 """ 
 
 def computeKf(Ei, E, Q, log):
@@ -161,15 +195,15 @@ def computePixelPosition(kfv, instrument, log):
     return pixel_pos
 
 def calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10):
-    from mcvine_workflow.singlextal.io import loadXtalOriFromSampleYml
+    from mcvine.workflow.singlextal.io import loadXtalOriFromSampleYml
     xtalori = loadXtalOriFromSampleYml(sampleyml)
     psimin, psimax, dpsi = psi_axis.min, psi_axis.max, psi_axis.step
-    from mcvine_workflow.singlextal.solve_psi import solve
+    from mcvine.workflow.singlextal.solve_psi import solve
     results = solve(
         xtalori, Ei, hkl, E, psi_min=psimin, psi_max=psimax,
         Nsegments = Npsisegments)
     assert len(results)
-    from mcvine_workflow.singlextal.coords_transform import hkl2Q
+    from mcvine.workflow.singlextal.coords_transform import hkl2Q
     r0 = results[0]
     psi_in_degrees = r0
     xtalori.psi = psi = r0*np.pi/180.
@@ -179,7 +213,23 @@ def calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10):
 
 
 def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
-        Q, E, hkl_projection, Nbuffer=100000):
+        Q, E, hkl_projection, Nbuffer=100000, Nrounds_beam=1):
+    """Run mcvine simulation with using the resolution sample and the resolution pixel,
+    and save the results as numpy arrays
+
+    - beam_neutrons_path: path to the "neutrons" file of a beam simulation
+    - instrument: instrument object with geometry data such as L1 and L2
+    - samplexmlpath: path to the sampleassembly xml file
+    - psi: sample rotation angle
+    - hkl2Q: matrix to convert hkl to Q: Q = hkl dot hkl2Q
+    - pixel: pixel object with pixe, height, pressure. and position
+    - t_m2p: exepcted tof from moderator to pixel
+    - Q: expected Q
+    - E: expected E
+    - hkl_projection: the simulated data is projected to this axis and E axis for easy inspection
+    - Nbuffer: neutron buffer size
+    - Nrounds_beam: number of rounds replaying neutrons in the beam
+    """
     from mcni.components.NeutronFromStorage import NeutronFromStorage
     source = NeutronFromStorage('source', path=beam_neutrons_path)
     from mccomponents.sample import samplecomponent
@@ -209,7 +259,7 @@ def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
     hkl_proj_len2 = np.dot(hkl_projection, hkl_projection)
     # neutron buffer
     from mcni.neutron_storage.idf_usenumpy import count
-    N0 = count(beam_neutrons_path)
+    N0 = count(beam_neutrons_path) * Nrounds_beam
     dxs_all = None; dEs_all = None; probs_all=None; dhkls_all=None
     start = 0
     for i in range(int(np.ceil(N0/Nbuffer))+1):
