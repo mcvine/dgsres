@@ -68,6 +68,11 @@ class Source:
     a=b=R = None
     
 class Geom:
+    """
+    l1: moderator to fermi chopper
+    l2: fermi chopper to sample
+    l3: sample to detector pixel
+    """
     def __init__(self, l1, l2, l3):
         self.l1 = l1
         self.l2 = l2
