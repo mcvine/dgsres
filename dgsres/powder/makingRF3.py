@@ -10,55 +10,11 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFil
 from PyQt5.QtGui import QIcon
 import warnings
 import h5py
+from Ikeda_carpenter import Count as Count
 
 
 
-
-
-def Count(tm, R, a, b, s, t0, p):
-    """Ikeda-Carpenter Model
-
-                Parameters
-                ----------
-                tm=array_like
-                    time axis
-                a :float
-                    parameter controlling the rise of the curve
-                b :float
-                    parameter controlling the fall of the curve
-                s: floats
-                    parameter controlling the widenning of the curve
-                t0 : float
-                    position of the curve
-                p=float
-                    Normalizing Factor
-
-                """
-    ul = ((1 / (np.sqrt(2) * s)) * (((11.6 * tm) / 16.6) - t0))
-
-    vl_a = (ul + ((a / np.sqrt(2)) * ((s * 16.6) / (2. + 3.))))
-
-    vl_b = (ul + ((b / np.sqrt(2)) * ((s * 16.6) / (2. + 3.))))
-
-    C01l = (np.sqrt(np.pi / 2) * ((s * 16.6) / (2. + 3.)) * np.exp(vl_b ** 2 - ul ** 2) * erfc(vl_b))
-
-    C02l = (np.sqrt(np.pi / 2) * ((s * 16.6) / (2. + 3.)) * np.exp(vl_a ** 2 - ul ** 2) * erfc(vl_a))
-
-    C1l = (((s * 16.6) / (2. + 3.)) ** 2 * np.exp(vl_a ** 2 - ul ** 2) * (
-    np.exp(-vl_a ** 2) - (np.sqrt(np.pi) * vl_a * erfc(vl_a))))
-
-    C2l = (np.sqrt(2) * ((s * 16.6) / (2. + 3.)) ** 3 * np.exp(vl_a ** 2 - ul ** 2) * (
-    (np.sqrt(np.pi) * (.5 + vl_a ** 2) * erfc(vl_a)) - (vl_a * np.exp(-vl_a ** 2))))
-
-    C = ((1 / (16.6 * np.sqrt(2 * np.pi) * s)) * (((1 - R) * a ** 2 * C2l) + (
-    (R * a ** 2 * b / (a - b) ** 3) * ((2 * C01l) - (((a - b) ** 2 * C2l) + (2 * (a - b) * C1l) + (2 * C02l))))))
-
-    C[np.isnan(C)] = 0
-    C[C < 0] = 0
-    A = p / np.sum(C)
-    return (A * C)
-
-def lamda(Ei): #
+def lamda(Ei):
     """lambda calculation from initial energy
 
                 Parameters
@@ -173,16 +129,46 @@ class ModelFitting():
         b0 = 31.9
         k = 46.
 
-        b_cal = 1 / b0
+        # b_cal = 1 / b0
 
+        Ei_array=np.array([15,60,100,200,600])
+        a_array=np.array([0.21850,0.35601,0.46473,0.71558,1.33170])
+        b_array=np.array([0.03737,0.03931,0.04370,0.09717,0.19422])
+        R_array=np.array([0.76500,0.73662,0.62021,0.31510,0.26689])
+        t0_array = np.array([0.42578, 0.22595, 0.17405, 0.12609, 0.07622])
 
         A_fixed = 1
-        s_fixed = 1
+        s_fixed = 2
 
 
         a=QApplication([])
 
         mcvine = QFileDialog.getOpenFileNames()[0]
+
+        # a_cal = interp1d(Ei_array, a_array, fill_value='interpolate', kind='cubic')(self.Ei)
+        # b_cal = interp1d(Ei_array, b_array, fill_value='interpolate', kind='cubic')(self.Ei)
+        # R_cal = interp1d(Ei_array, R_array, fill_value='interpolate', kind='cubic')(self.Ei)
+        # t0_cal = interp1d(Ei_array, t0_array, fill_value='interpolate', kind='cubic')(self.Ei)
+        if self.Ei == 30:
+            a_cal=0.28175
+            b_cal=0.03827
+            R_cal=0.78498
+            t0_cal=0.30687
+
+        if self.Ei==130:
+            a_cal = 0.528
+            b_cal = 0.04910
+            R_cal = 0.51
+            t0_cal = 0.155
+
+        if self.Ei==300:
+            a_cal = 0.89
+            b_cal = 0.15
+            R_cal = 0.28
+            t0_cal = 0.10
+            # R_cal = 0.5  # 0.5 for Ei=30,
+
+        # a_cal = 1. / (a0 + (self.lamda(self.Ei) * a1))
 
         no_Et_Files=len(mcvine)
         for i in xrange(no_Et_Files):
@@ -205,6 +191,10 @@ class ModelFitting():
 
             peak_position = ie.E[np.where(ie.I == max(ie.I))[0][0]]  # finding the position of the peak of Eenergy transfer thar are given from mcvine
 
+            # if self.Ei==30:
+            #     if peak_position>20:
+            #         s_fixed=8
+
             peak_positionE.append(peak_position)
 
             #### interpolation
@@ -223,36 +213,38 @@ class ModelFitting():
 
             mod = Model(self.Count)
 
+
+
             # RF_inpl = RF_inpl / np.sum(RF_inpl)
+
 
 
 
             p_val = np.sum(RF_inpl)
             #         RF_inter.append( RF_inpl(EnerInt ))
 
-            t_fixed =1
-
-            print (t_fixed)
+            # t0_cal =1
+            #
+            # print (t_fixed)
 
             # if self.Ei==30:
             #     t_fixed = peak_position
 
-            R_cal=np.exp(-81.799/(k*(self.lamda(self.Ei)**2)))
+            # R_cal=np.exp(-81.799/(k*(self.lamda(self.Ei)**2)))
 
-            if self.Ei == 130:
-                R_cal=0.5
+            # if self.Ei == 130:
+                # R_cal=0.5
 
-            # if self.Ei==30:
-            #     R_cal = 0.5 # 0.5 for Ei=30,
 
-            a_cal = 1. / (a0 + (self.lamda(self.Ei) * a1))
 
-            if self.Ei == 130:
-                    mod.set_param_hint('R', value=R_cal, min=0.0, max=1.0 )
-                    mod.set_param_hint('a', value=a_cal,  min=0.0)
-                    mod.set_param_hint('b', value=b_cal, min=0.0)
-                    mod.set_param_hint('s', value=s_fixed, min=0.0)
-                    mod.set_param_hint('t0', value=t_fixed, min=0.0)
+            print a_cal, b_cal, R_cal
+
+            # if self.Ei == 130:
+            #         mod.set_param_hint('R', value=R_cal, min=0.0, max=1.0 )
+            #         mod.set_param_hint('a', value=a_cal,  min=0.0)
+            #         mod.set_param_hint('b', value=b_cal, min=0.0)
+            #         mod.set_param_hint('s', value=s_fixed, min=0.0)
+            #         mod.set_param_hint('t0', value=t_fixed, min=0.0)
 
             # if self.Ei == 30:
             #     mod.set_param_hint('R', value=R_cal, min=0.0, max=1.0)
@@ -261,19 +253,27 @@ class ModelFitting():
             #     mod.set_param_hint('s', value=s_fixed, min=0.0)
             #     mod.set_param_hint('t0', value=t_fixed, min=0.0, vary=False)
 
-            if self.Ei == 30:
-                mod.set_param_hint('R', value=R_cal, vary=False)
-                mod.set_param_hint('a', value=a_cal, vary=False)
-                mod.set_param_hint('b', value=b_cal, vary=False)
-                mod.set_param_hint('s', value=s_fixed, min=0.0)
-                mod.set_param_hint('t0', value=t_fixed, min=0.0)
+            # if self.Ei == 30:
+            #     mod.set_param_hint('R', value=R_cal, vary=False)
+            #     mod.set_param_hint('a', value=a_cal, vary=False)
+            #     mod.set_param_hint('b', value=b_cal, vary=False)
+            #     mod.set_param_hint('s', value=s_fixed, min=0.0)
+            #     mod.set_param_hint('t0', value=t_fixed, min=0.0)
 
-            if self.Ei == 300:
-                    mod.set_param_hint('R', value=R_cal, vary=False )
-                    mod.set_param_hint('a', value=a_cal,  vary=False)
-                    mod.set_param_hint('b', value=b_cal, vary=False)
-                    mod.set_param_hint('s', value=s_fixed, min=0.0)
-                    mod.set_param_hint('t0', value=t_fixed, min=0.0)
+            # if self.Ei == 300:
+            if i ==0:
+                mod.set_param_hint('R', value=R_cal, min=0.0, max=1.0 )
+                mod.set_param_hint('a', value=a_cal)
+                mod.set_param_hint('b', value=b_cal)
+                mod.set_param_hint('s', value=s_fixed, min=0.0)
+                mod.set_param_hint('t0', value=t0_cal, min=0.0)
+
+            if i>0:
+                mod.set_param_hint('R', value=R_cal, vary=False)
+                mod.set_param_hint('a', value=a_cal,vary=False)
+                mod.set_param_hint('b', value=b_cal,vary=False)
+                mod.set_param_hint('s', value=s_fixed, min=0.0)
+                mod.set_param_hint('t0', value=t0_cal, min=0.0, vary=False)
 
             mod.set_param_hint('p', value=p_val, min=0.0, vary=False)
             # a.exec_()
@@ -290,6 +290,16 @@ class ModelFitting():
 
             dely = mod.eval(pars, tm=taxis)
 
+            R_cal0 = R_cal
+            a_cal0 = a_cal
+            b_cal0 = b_cal
+            t0_cal0 = t0_cal
+
+            R_cal=result.params['R'].value
+            a_cal=result.params['a'].value
+            b_cal=result.params['b'].value
+            t0_cal=result.params['t0'].value
+
             R_fit.append(result.params['R'].value)  # saving the parameters
             a_fit.append(result.params['a'].value)  # saving the parameters
             b_fit.append(result.params['b'].value)  # saving the parameters
@@ -304,7 +314,9 @@ class ModelFitting():
         RFE_intp=np.reshape(RFE_intp, (no_Et_Files, -1))
         RF_Fit=np.reshape(RF_Fit, (no_Et_Files, -1))
 
-        return(RF_mcvine , RFE_mcvine,RF_intp,RFE_intp,RF_Fit, R_fit, a_fit, b_fit, s_fit,t0_fit, p_fit, peak_positionE,error )
+        np.savetxt('Ikeda_Carpenter Parameters for Ei= {}.xlsx'.format(self.Ei), np.c_[ peak_positionE, R_fit,a_fit, b_fit, s_fit, t0_fit ])
+
+        return(RF_mcvine, RFE_mcvine,RF_intp,RFE_intp,RF_Fit, R_fit,  a_fit, b_fit, s_fit, t0_fit, p_fit, peak_positionE,error )
 
             # return ()
 
@@ -371,3 +383,10 @@ class ModelFitting():
 
         return(RF, time)
 
+def test ():
+    model_30 = ModelFitting(30, 0.1, 3)
+    param_30 = model_30.param()
+    RF_mcvine_30, RFE_mcvine_30, RF_intp_30, RFE_intp_30, RF_Fit_30, R_30, a_30, b_30, s_30, t_30, p_30, peaks_30, error_30 = param_30
+
+if __name__=='__main__':
+    test()
