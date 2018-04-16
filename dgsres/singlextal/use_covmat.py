@@ -61,13 +61,13 @@ def compute(
     vf = Conv.e2v(Ef)
 
     # find the psi angle
-    from mcvine_workflow.singlextal.io import loadXtalOriFromSampleYml
+    from mcvine.workflow.singlextal.io import loadXtalOriFromSampleYml
     xtalori = loadXtalOriFromSampleYml(sample_yml)
-    from mcvine_workflow.singlextal.solve_psi import solve
+    from mcvine.workflow.singlextal.solve_psi import solve
     results = solve(
         xtalori, Ei, hkl, E, psimin, psimax,
         Nsegments = NSEGMENTS_SOLVE_PSI)
-    from mcvine_workflow.singlextal.coords_transform import hkl2Q
+    from mcvine.workflow.singlextal.coords_transform import hkl2Q
     for r in results:
         xtalori.psi = r*np.pi/180
         print "psi=%s, Q=%s" % (r, hkl2Q(hkl, xtalori))

@@ -65,19 +65,33 @@ class Fit(object):
         dx = res_x[1]-res_x[0]
         dy = res_y[1]-res_y[0]
         res_z /= np.sum(res_z)*dx*dy
-        x0 =  (dq_over_dE,)
-        if dq_over_dE>0:
-            bounds = np.array(
-                [(0.,),
-                 (dq_over_dE*3,)]
-            ).T
-        elif dq_over_dE < 0:
-            bounds = np.array(
-                [(dq_over_dE*3,),
-                 (0.,),]
-            ).T
+        # dq_over_dE could be a single value or a tuple (bounds)
+        try:
+            # bound
+            l, u = dq_over_dE
+            input_type = 'bounds'
+        except:
+            input_type = 'single value'
+            pass
+
+        if input_type == 'bounds':
+            bounds = np.array([[l,u]])
+            x0 = ((l+u)/2., )
         else:
-            raise ValueError("dq_over_dE estimate must not be zero")
+            # single value
+            x0 =  (dq_over_dE,)
+            if dq_over_dE>0:
+                bounds = np.array(
+                    [(0.,),
+                     (dq_over_dE*3,)]
+                ).T
+            elif dq_over_dE < 0:
+                bounds = np.array(
+                    [(dq_over_dE*3,),
+                     (0.,),]
+                ).T
+            else:
+                raise ValueError("dq_over_dE estimate must not be zero")
         cost = self.model.make_qE_profile_cost(res_x, res_y, res_z)
         fitres = sopt.minimize(
             cost, x0=x0, bounds=bounds)#, method='L-BFGS-B')
