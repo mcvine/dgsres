@@ -14,5 +14,4 @@ conda install mantid-framework
 conda list mcvine
 
 export AWS_S3_PROFILE_NAME=ndav_mcvine
-# py.test -s
-
+py.test -s

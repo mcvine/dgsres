@@ -5,12 +5,15 @@
 import mcvine.cli
 import dgsres
 from dgsres.singlextal import use_res_comps
+import numpy as np, os
+here = os.path.abspath(os.path.dirname(__file__))
 
-import numpy as np
 
 def test_setup():
-    sampleyml = "Si.yml"
+    sampleyml = os.path.join(here, "Si.yml")
     beam = "/SNS/users/lj7/simulations/ARCS/beam/100meV-n1e10"
+    # for running on jenkins. data is downloaded by jenkins/getbeam.sh
+    beam = os.path.expanduser("~/beam/ARCS/100meV")
     E = 40.
     hkl = [-16/3.,-8/3.,8/3.]
     hkl_projection = np.array([-1.,1.,-1.])/3
@@ -27,7 +30,7 @@ def test_setup():
         pressure = "10*atm",
         )
     use_res_comps.setup(
-        '_tmp.out', sampleyml, beam, E, hkl, hkl_projection,
+        os.path.join(here, '_tmp.out'), sampleyml, beam, E, hkl, hkl_projection,
         psi_axis, instrument, pixel)
     return
 

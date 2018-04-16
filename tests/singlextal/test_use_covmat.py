@@ -4,11 +4,12 @@
 
 import mcvine.cli
 from dgsres.singlextal import use_covmat
+import numpy as np, os
+here = os.path.abspath(os.path.dirname(__file__))
 
-import numpy as np
 
-def test():
-    sampleyml = "Si.yml"
+def test(plot=False):
+    sampleyml = os.path.join(here, "Si.yml")
     Ei = 100
     class dynamics:
         hkl0 = [-16/3.,-8/3.,8/3.]
@@ -36,12 +37,12 @@ def test():
         sampleyml, Ei, dynamics, scan,
         instrument, pixel,
         tofwidths, beamdivs, samplethickness,
-        plot=True)
+        plot=plot)
     return
 
 
 def main():
-    test()
+    test(plot=True)
     return
 
 
