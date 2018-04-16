@@ -1,3 +1,3 @@
 ./jenkins/getbeam.sh
 ./jenkins/gettestdata.sh
-./jenkins/run-tests.sh
+PYTHONPATH=$PWD ./jenkins/run-tests.sh
