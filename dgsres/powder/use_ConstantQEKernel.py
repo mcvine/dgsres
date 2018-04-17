@@ -7,6 +7,7 @@ class Sim:
 
     def __init__(
             self,
+            instrument = 'ARCS',
             workdir = ".",
             beamdir = "/SNS/users/lj7/simulations/ARCS/beam/300meV-n3e9",
             Ei = 300,
@@ -34,7 +35,7 @@ class Sim:
         simdir = os.path.join(workdir, 'res-sim')
         if not os.path.exists(simdir):
             # init
-            os.system(u'mcvine workflow powder --instrument=ARCS --sample=V --workdir=%s' % simdir)
+            os.system(u'mcvine workflow powder --instrument=%s --sample=V --workdir=%s' % (instrument, simdir))
             os.chdir(simdir)
             os.system("rm -rf beam")
             os.system('ln -s %s beam' % beamdir)
@@ -45,6 +46,7 @@ class Sim:
         self.dQ_axis, self.dE_axis = dQ_axis, dE_axis
         self.ncount = ncount
         self.nodes = nodes
+        self.instrument = instrument
         os.chdir(pwd)
         return
 
@@ -82,8 +84,9 @@ class Sim:
         pwd = os.path.abspath(".")
         simdir = self.simdir
         os.chdir(simdir)
-        cmd = ("time mcvine instruments arcs nxs reduce sim.nxs "
+        cmd = ("time mcvine instruments {instrument} nxs reduce sim.nxs "
                "--qaxis {Qmin} {Qmax} {dQ} --eaxis {Emin} {Emax} {dE} --tof2E >log.reduce2 2>&1").format(
+                   instrument = self.instrument.lower(),
                    Qmin=Q+dQ_min, Qmax=Q+dQ_max, dQ=ddQ,
                    Emin=E+dE_min, Emax=E+dE_max, dE=ddE)
         _exec(cmd)

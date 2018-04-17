@@ -17,6 +17,7 @@ def test():
     Q = 5
     workdir = os.path.join(here, "work.useConstantQE")
     sim = use_ConstantQEKernel.Sim(
+        instrument = 'ARCS',
         workdir = workdir,
         beamdir = beam,
         Ei = 100,
