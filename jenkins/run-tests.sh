@@ -10,6 +10,10 @@ source activate test-dgsres
 set -e
 conda config --add channels mantid  # need mantid-framework
 conda install -c mcvine/label/unstable mcvine
+
+# check mantid
+python -c "import mantid"
+
 conda install pytest
 # conda install mantid-framework
 conda list mcvine
