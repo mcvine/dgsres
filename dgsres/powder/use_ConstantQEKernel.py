@@ -93,11 +93,36 @@ class Sim:
         iqe = hh.load("iqe.h5")
         iqe.I[iqe.I!=iqe.I] = 0
         ie = iqe.sum('Q')
-        identifier = 'E_%s-Q_%s' % (Q,E)
-        hh.dump(ie, os.path.join(self.outdir, 'ie-%s.h5' % identifier))
-        hh.dump(iqe, os.path.join(self.outdir, 'iqe-%s.h5' % identifier))
+        hh.dump(ie, result_path(self.outdir, Q, E, 'I(E)'))
+        hh.dump(iqe, result_path(self.outdir, Q, E, 'I(Q,E)'))
         os.chdir(pwd)
         return
+
+
+kind2prefix = {
+    'I(E)': 'ie',
+    'I(Q,E)': 'iqe',
+    }
+def result_path(outdir, Q, E, kind='I(E)'):
+    Q = float(Q); E = float(E)
+    identifier = 'Q_%s-E_%s' % (Q,E)
+    pre = kind2prefix[kind]
+    return os.path.join(outdir, '%s-%s.h5' % (pre, identifier))
+
+
+def list_results(outdir, kind):
+    pre = kind2prefix[kind]
+    pattern = os.path.join(outdir, '%s-Q_*-E_*.h5' % pre)
+    import glob
+    files = glob.glob(pattern)
+    l = []
+    for fn in files:
+        b = os.path.basename(fn)
+        _, Q, E = b.rstrip('.h5').split('-')
+        Q, E = map(float, (Q[2:], E[2:]))
+        l.append((Q,E))
+        continue
+    return l
 
 
 scatterer_template = """<?xml version="1.0"?>
