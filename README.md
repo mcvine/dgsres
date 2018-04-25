@@ -5,3 +5,6 @@
 Neutron Direct Geometry Spectrometer Resolution Calculators
 
 This repository is a collection of resolution calculators for direct-geometry inelastic neutron spectrometers.
+
+## Installation
+`$ python setup.py install`
