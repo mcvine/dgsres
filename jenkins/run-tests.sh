@@ -8,6 +8,10 @@ source activate test-dgsres
 # check mcvine
 conda list mcvine
 
+# check mcvine
+python -c "import mcvine"
+mcvine
+
 # check mantid
 python -c "import mantid"
 
