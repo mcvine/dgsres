@@ -130,7 +130,7 @@ scatterer_template = """<?xml version="1.0"?>
 <!DOCTYPE scatterer>
 
 <!-- weights: absorption, scattering, transmission -->
-<homogeneous_scatterer mcweights="0, 1, 0">
+<homogeneous_scatterer mcweights="0, 1, 0.2">
 
   <ConstantQEKernel momentum-transfer="{Q}/angstrom" energy-transfer="{E}*meV">
   </ConstantQEKernel>
