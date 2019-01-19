@@ -12,4 +12,5 @@ conda config --add channels diffpy
 conda config --add channels mantid  # need mantid-framework
 conda install mpich
 # conda install mcvine-core
+conda install muparser=2.2.5=0 mantid-framework
 conda install -c mcvine/label/unstable mcvine
