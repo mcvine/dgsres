@@ -18,6 +18,10 @@ class Fit(base):
 
     def fit(self, rounds=None, gaussian2d_threshold=0.5):
         qgrid, Egrid = self.qEgrids
+        self.res_z = res_z = self.get_res_z()
+        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold)
+
+    def get_res_z(self):
         reshist = self.mcvine_psf_qE
         res_x = reshist.q
         res_y = reshist.E
@@ -25,9 +29,7 @@ class Fit(base):
         dx = res_x[1]-res_x[0]
         dy = res_y[1]-res_y[0]
         res_z /= np.sum(res_z)*dx*dy
-        self.res_z = res_z
-        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold)
-
+        return res_z
 
     def createModel(self):
         # model is in the ellipsoid method below
@@ -40,19 +42,8 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     ugrid = qgrid/qrange; vgrid = Egrid/Erange
-    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = fitguess(qgrid, Egrid, I, gaussian2d_threshold)
     z = I.copy().flatten()/I.max()
-    model = lmfit.Model(ellipsoid, independent_vars=['u', 'v'])
-    model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
-    model.set_param_hint('beta', value=beta, min=beta-np.pi/10, max=beta+np.pi/10)
-    model.set_param_hint('xp_center', value=xp_center, min=xp_center-1, max=xp_center+1)
-    model.set_param_hint('xp_sigma', value=xp_sigma, min=xp_sigma/10, max=xp_sigma*10)
-    model.set_param_hint('y_sigma_left', value=y_sigma/2., min=y_sigma/10, max=y_sigma*10)
-    model.set_param_hint('y_sigma_right', value=y_sigma/2., min=y_sigma/10, max=y_sigma*10)
-    model.set_param_hint('y_weight_left', value=.5, min=0.01, max=.99)
-    model.set_param_hint('y_ef_width', value=y_sigma/10, min=y_sigma/100, max=y_sigma*2)
-    model.set_param_hint('y_offset', value=0, min=-y_sigma, max=y_sigma)
-    model.set_param_hint('scale', value=1., min=0.1, max=10)
+    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold)
     print "Established model:", model
     model.print_param_hints(colwidth=12)
     print "Start fitting..."
@@ -67,8 +58,8 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     #
     # alpha may be 90 degrees off
     print "Start fitting with alpha_guess+90degree..."
-    alpha += np.pi/2
-    model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
+    alpha, beta = guess_results[:2]
+    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta)
     for i in range(rounds):
         print " -- Fitting round %s" % i
         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
@@ -80,6 +71,21 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     return results[0]
 
 
+def guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=None, beta=None):
+    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = guess_results = fitguess(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha, beta=beta)
+    model = lmfit.Model(ellipsoid, independent_vars=['u', 'v'])
+    model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
+    model.set_param_hint('beta', value=beta, min=beta-np.pi/10, max=beta+np.pi/10)
+    model.set_param_hint('xp_center', value=xp_center, min=xp_center-1, max=xp_center+1)
+    model.set_param_hint('xp_sigma', value=xp_sigma, min=xp_sigma/10, max=xp_sigma*10)
+    model.set_param_hint('y_sigma_left', value=y_sigma/2., min=y_sigma/10, max=y_sigma*10)
+    model.set_param_hint('y_sigma_right', value=y_sigma/2., min=y_sigma/10, max=y_sigma*10)
+    model.set_param_hint('y_weight_left', value=.5, min=0.01, max=.99)
+    model.set_param_hint('y_ef_width', value=y_sigma/10, min=y_sigma/100, max=y_sigma*2)
+    model.set_param_hint('y_offset', value=0, min=-y_sigma, max=y_sigma)
+    model.set_param_hint('scale', value=1., min=0.1, max=10)
+    return model, guess_results
+    
 def ellipsoid(
         u, v, alpha, beta,
         xp_center, xp_sigma,
@@ -145,15 +151,20 @@ def weighted_avg_and_std(values, weights):
     variance = np.average((values-average)**2, weights=weights)
     return (average, np.sqrt(variance))
 
-def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5):
-    "return guess parameters for fitting"
+def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None):
+    """return guess parameters for fitting
+
+    alpha and beta if provided, will not be guessed
+    """
     # convert to unitless
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     ugrid = qgrid/qrange; vgrid = Egrid/Erange
     # initial guess of parameters
-    alpha = getAlpha(ugrid, vgrid, I, gaussian2d_threshold)
-    beta = getBeta(ugrid, vgrid, I)
+    if alpha is None:
+        alpha = getAlpha(ugrid, vgrid, I, gaussian2d_threshold)
+    if beta is None:
+        beta = getBeta(ugrid, vgrid, I)
     print "Guessed alpha,beta=", np.rad2deg([alpha, beta])
     # initial guess for x and y profiles
     # x is gaussian, y is asymmetric
