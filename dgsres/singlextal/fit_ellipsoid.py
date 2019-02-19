@@ -16,7 +16,7 @@ from .fit_2d_psf import Fit as base
 
 class Fit(base):
 
-    def fit(self, rounds=None):
+    def fit(self, rounds=None, gaussian2d_threshold=0.5):
         qgrid, Egrid = self.qEgrids
         reshist = self.mcvine_psf_qE
         res_x = reshist.q
@@ -26,7 +26,7 @@ class Fit(base):
         dy = res_y[1]-res_y[0]
         res_z /= np.sum(res_z)*dx*dy
         self.res_z = res_z
-        return fit(qgrid, Egrid, res_z, rounds=rounds)
+        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold)
 
 
     def createModel(self):
@@ -34,13 +34,13 @@ class Fit(base):
         return
     
     
-def fit(qgrid, Egrid, I, rounds=None):
+def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     if not rounds: rounds = 3
     # convert to unitless
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     ugrid = qgrid/qrange; vgrid = Egrid/Erange
-    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = fitguess(qgrid, Egrid, I)
+    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = fitguess(qgrid, Egrid, I, gaussian2d_threshold)
     z = I.copy().flatten()/I.max()
     model = lmfit.Model(ellipsoid, independent_vars=['u', 'v'])
     model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
@@ -57,6 +57,18 @@ def fit(qgrid, Egrid, I, rounds=None):
     model.print_param_hints(colwidth=12)
     print "Start fitting..."
     results = []
+    for i in range(rounds):
+        print " -- Fitting round %s" % i
+        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
+        # print result.fit_report()
+        results.append(result)
+        print "    chisq=%s" % result.chisqr
+        # print
+    #
+    # alpha may be 90 degrees off
+    print "Start fitting with alpha_guess+90degree..."
+    alpha += np.pi/2
+    model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
     for i in range(rounds):
         print " -- Fitting round %s" % i
         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
@@ -99,12 +111,12 @@ def getPrimaryAxisAngle(ugrid, vgrid, I):
     vals, vecs = np.linalg.eig(cov)
     return np.arctan2(*vecs[0])
 
-def getAlpha(ugrid, vgrid, I):
+def getAlpha(ugrid, vgrid, I, threshold=.5):
     "guess alpha angle. the bright part"
     # median = np.nanmedian(I[I>0])
     max = np.nanmax(I)
     # large=np.where(I>median)
-    large = np.where(I>max*.5)
+    large = np.where(I>max*threshold)
     # print "Alpha. max=", max*.5
     return getPrimaryAxisAngle(ugrid[large], vgrid[large], I[large])
 
@@ -133,14 +145,14 @@ def weighted_avg_and_std(values, weights):
     variance = np.average((values-average)**2, weights=weights)
     return (average, np.sqrt(variance))
 
-def fitguess(qgrid, Egrid, I):
+def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5):
     "return guess parameters for fitting"
     # convert to unitless
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     ugrid = qgrid/qrange; vgrid = Egrid/Erange
     # initial guess of parameters
-    alpha = getAlpha(ugrid, vgrid, I)
+    alpha = getAlpha(ugrid, vgrid, I, gaussian2d_threshold)
     beta = getBeta(ugrid, vgrid, I)
     print "Guessed alpha,beta=", np.rad2deg([alpha, beta])
     # initial guess for x and y profiles
