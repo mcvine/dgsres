@@ -16,10 +16,17 @@ from .fit_2d_psf import Fit as base
 
 class Fit(base):
 
-    def fit(self, rounds=None, gaussian2d_threshold=0.5):
+    def fit(self, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None):
+        """
+        alpha_bounds: 
+
+            alpha (and beta) values can be 180 degree off.
+            to make interpolation easy it is better to get all alpha values in a certain range
+            if alpha_bounds is given, the code here will try to keep alpha within bounds
+        """
         qgrid, Egrid = self.qEgrids
         self.res_z = res_z = self.get_res_z()
-        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold)
+        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold, alpha_bounds=alpha_bounds)
 
     def get_res_z(self):
         reshist = self.mcvine_psf_qE
@@ -34,16 +41,78 @@ class Fit(base):
     def createModel(self):
         # model is in the ellipsoid method below
         return
+
+
+class FitResult: pass
+
+
+class InterpModel:
+
+    """interpolated resolution model
+
+    Given parameter values at some (q,E) points, this class provides convenient methods
+    to calculate the parameters at a given (q',E') point, and generate a model.
+    """
+    def __init__(self, qE_points, param_values, qrange, Erange):
+        self.qE_points = qE_points
+        self.param_values = param_values
+        self.qrange = qrange
+        self.Erange = Erange
+        return
+
+    def getModel(self, q, E):
+        from scipy.interpolate import griddata
+        kwds = dict()
+        keys = self.param_values.keys()
+        for k in keys:
+            vals = self.param_values[k]
+            kwds[k] = griddata(self.qE_points, vals, [[q, E]]) [0]
+            continue
+        return Model(self.qrange, self.Erange, **kwds)
+
+
+class Model:
+
+    def __init__(
+            self, qrange, Erange,
+            alpha, beta,
+            xp_center, xp_sigma,
+            y_sigma_left, y_sigma_right, y_weight_left, y_ef_width, y_offset,
+            scale):
+        self.qrange = qrange
+        self.Erange = Erange
+        self.alpha, self.beta = alpha, beta
+        self.xp_center, self.xp_sigma = xp_center, xp_sigma
+        self.y_sigma_left, self.y_sigma_right, self.y_weight_left, self.y_ef_width, self.y_offset\
+            = y_sigma_left, y_sigma_right, y_weight_left, y_ef_width, y_offset
+        self.scale = scale
+        return
+
+    def ongrid(self, qgrid, Egrid):
+        u = qgrid/self.qrange
+        v = Egrid/self.Erange
+        return ellipsoid(
+            u, v, self.alpha, self.beta,
+            self.xp_center, self.xp_sigma,
+            self.y_sigma_left, self.y_sigma_right, self.y_weight_left, self.y_ef_width, self.y_offset,
+            self.scale)
+
+
+def qE2uv_grid(qgrid, Egrid):
+    qrange, Erange = qEgrid2range(qgrid, Egrid)
+    return qgrid/qrange, Egrid/Erange
     
-    
-def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
-    if not rounds: rounds = 3
-    # convert to unitless
+def qEgrid2range(qgrid, Egrid):
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
-    ugrid = qgrid/qrange; vgrid = Egrid/Erange
+    return qrange, Erange
+    
+def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None):
+    if not rounds: rounds = 3
+    # convert to unitless
+    ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
     z = I.copy().flatten()/I.max()
-    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold)
+    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha_bounds=alpha_bounds)
     print "Established model:", model
     model.print_param_hints(colwidth=12)
     print "Start fitting..."
@@ -59,7 +128,7 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     # alpha may be 90 degrees off
     print "Start fitting with alpha_guess+90degree..."
     alpha, beta = guess_results[:2]
-    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta)
+    model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta, alpha_bounds=alpha_bounds)
     for i in range(rounds):
         print " -- Fitting round %s" % i
         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
@@ -71,8 +140,8 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5):
     return results[0]
 
 
-def guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=None, beta=None):
-    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = guess_results = fitguess(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha, beta=beta)
+def guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=None, beta=None, alpha_bounds=None):
+    alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = guess_results = fitguess(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha, beta=beta, alpha_bounds=alpha_bounds)
     model = lmfit.Model(ellipsoid, independent_vars=['u', 'v'])
     model.set_param_hint('alpha', value=alpha, min=alpha-np.pi/10, max=alpha+np.pi/10)
     model.set_param_hint('beta', value=beta, min=beta-np.pi/10, max=beta+np.pi/10)
@@ -151,18 +220,22 @@ def weighted_avg_and_std(values, weights):
     variance = np.average((values-average)**2, weights=weights)
     return (average, np.sqrt(variance))
 
-def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None):
+def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, alpha_bounds=None):
     """return guess parameters for fitting
 
     alpha and beta if provided, will not be guessed
     """
     # convert to unitless
-    qrange = qgrid[0][-1] - qgrid[0][0]
-    Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
+    ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
     ugrid = qgrid/qrange; vgrid = Egrid/Erange
     # initial guess of parameters
     if alpha is None:
         alpha = getAlpha(ugrid, vgrid, I, gaussian2d_threshold)
+    if alpha_bounds is not None:
+        # alpha (and beta) values can be 180 degree off.
+        # to make interpolation easy it is better to get all alpha values in a certain range
+        # if alpha_bounds is given, the code here will try to keep alpha within bounds
+        alpha = adjust_to_within_bounds(alpha, alpha_bounds, period=np.pi)
     if beta is None:
         beta = getBeta(ugrid, vgrid, I)
     print "Guessed alpha,beta=", np.rad2deg([alpha, beta])
@@ -191,5 +264,26 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None):
     print "Guessed x' center, sigma: ", xp_center, xp_sigma
     print "Guessed y center, sigma: ", y_center, y_sigma
     return alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma
+
+def adjust_to_within_bounds(x, bounds, period):
+    min, max = bounds
+    min1 = min % period
+    x1 = x % period
+    xdiff = x-x1; mindiff = min-min1
+    x += mindiff - xdiff
+    for i in range(0,2):
+        x += i*period
+        if x <= max and x >= min: return x
+        continue
+    raise RuntimeError("failed to adjust %s to be withint %s. period=%s" % (x, bounds, period))
+
+
+def test_adjust_to_within_bounds():
+    assert adjust_to_within_bounds(3, (185.,365.), 180.) == 363
+    assert adjust_to_within_bounds(-3, (185.,365.), 180.) == 357
+    assert adjust_to_within_bounds(187, (185.,365.), 180.) == 187
+    for i in range(-5, 10):
+        assert adjust_to_within_bounds(187+i*180, (185.,365.), 180.) == 187
+    return
 
 # End of file 
