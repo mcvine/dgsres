@@ -1,10 +1,12 @@
 import numpy as np
+from ..convolve2d import Grid
 
 from ..convolve2d import Convolver as base
 class Convolver(base):
     
-    def __init__(self, grid, hkl_start, hkl_end, expansion_ratio, N_subpixels):
-        base.__init__(self, grid, expansion_ratio, N_subpixels)
+    def __init__(
+            self, grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, res_range):
+        base.__init__(self, grid, expansion_ratio, N_subpixels, res_func, res_range)
         self.hkl_start = hkl_start
         self.hkl_end = hkl_end
         qticks = grid.xaxis.ticks()
