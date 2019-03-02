@@ -91,11 +91,13 @@ class Model:
     def ongrid(self, qgrid, Egrid):
         u = qgrid/self.qrange
         v = Egrid/self.Erange
-        return ellipsoid(
+        ret = ellipsoid(
             u, v, self.alpha, self.beta,
             self.xp_center, self.xp_sigma,
             self.y_sigma_left, self.y_sigma_right, self.y_weight_left, self.y_ef_width, self.y_offset,
             self.scale)
+        ret/=ret.sum()
+        return ret
 
 
 def qE2uv_grid(qgrid, Egrid):
@@ -227,7 +229,6 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, a
     """
     # convert to unitless
     ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
-    ugrid = qgrid/qrange; vgrid = Egrid/Erange
     # initial guess of parameters
     if alpha is None:
         alpha = getAlpha(ugrid, vgrid, I, gaussian2d_threshold)
