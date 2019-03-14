@@ -4,6 +4,7 @@ see https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared
 
 import os, shutil, subprocess as sp, time
 import numpy as np
+from matplotlib import pyplot as plt
 from . import use_res_comps
 
 def plotDynRange(hkl0, hkl_projection, qaxis, Erange, config):
@@ -46,10 +47,9 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
 
 def simulate_all_grid_points(slice, config, Nrounds_beam=1):
     failed = []; outputs = {}
-    outdir_pattern = config.simdir_pattern
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
-            simdir = outdir_pattern % (q,E)
+            simdir = config.simdir(q,E, slice)
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
             except:
@@ -59,7 +59,6 @@ def simulate_all_grid_points(slice, config, Nrounds_beam=1):
 
 
 def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
-    from matplotlib import pyplot as plt
     qs = slice.grid.qaxis.ticks()
     Es = slice.grid.Eaxis.ticks()
     ncols = len(qs)
@@ -71,7 +70,7 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
         for icol in range(ncols):
             q = qs[icol]
             E = Es[irow]
-            simdir = config.simdir_pattern % (q,E)
+            simdir = config.simdir(q,E, slice)
             try:
                 probs = np.load('%s/probs.npy' % simdir)
             except IOError:
@@ -90,4 +89,35 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             ax1.pcolormesh(dqg, dEg, I.T)
     plt.tight_layout()
+    return
+
+
+def fit(q, E, slice, config):
+    from dgsres.singlextal import fit_ellipsoid
+    datadir = config.simdir(q,E,slice)
+    qaxis = slice.res_2d_grid.qaxis
+    Eaxis = slice.res_2d_grid.Eaxis
+    fitter = fit_ellipsoid.Fit(
+        datadir,
+        qaxis=(qaxis.min, qaxis.max, qaxis.step),
+        Eaxis=(Eaxis.min, Eaxis.max, Eaxis.step),
+        Ei=config.Ei, E=E
+    )
+    fitter.load_mcvine_psf_qE(adjust_energy_center=True)
+    fitter.fit_result = fitter.fit()
+    return fitter
+
+
+def plot_compare_fit_to_data(fitter, figsize=(8,4)):
+    res_z = fitter.res_z
+    qgrid, Egrid = fitter.qEgrids
+    result = fitter.fit_result
+    plt.figure(figsize=figsize)
+    plt.subplot(1,2,1)
+    plt.pcolormesh(qgrid, Egrid, res_z)
+    plt.colorbar()
+    plt.subplot(1,2,2)
+    scale = res_z.sum()/result.best_fit.sum()
+    plt.pcolormesh(qgrid, Egrid, result.best_fit.reshape(res_z.shape)*scale)
+    plt.colorbar()
     return
