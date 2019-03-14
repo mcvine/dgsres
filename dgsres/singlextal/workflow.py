@@ -196,7 +196,7 @@ def print_parameter_table(qE2fitres):
     return
 
 
-def createInterpModel(qE2fitres, slice):
+def create_interp_model(qE2fitres, slice):
     # Get parameters as lists, ready for interpolation
     keys = qE2fitres.values()[0].best_values.keys()
     qEs_all = qE2fitres.keys()
