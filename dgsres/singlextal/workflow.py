@@ -1,11 +1,13 @@
 """
-see https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20simulations%20-%20improve%20workflow.ipynb#
+see
+* https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20simulations%20-%20improve%20workflow.ipynb
+* https://jupyter.sns.gov/user/lj7/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20fit%20-%20improve%20workflow.ipynb
 """
 
 import os, shutil, subprocess as sp, time
 import numpy as np
 from matplotlib import pyplot as plt
-from . import use_res_comps
+from . import use_res_comps, fit_ellipsoid
 
 def plotDynRange(hkl0, hkl_projection, qaxis, Erange, config):
     from mcvine.workflow.singlextal import dynrange
@@ -104,7 +106,8 @@ def fit(q, E, slice, config):
         Ei=config.Ei, E=E
     )
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
-    fitter.fit_result = fitter.fit()
+    fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
+    fitter.fit_result = fitter.fit(**fitting_params)
     return fitter
 
 
@@ -121,3 +124,67 @@ def plot_compare_fit_to_data(fitter, figsize=(8,4)):
     plt.pcolormesh(qgrid, Egrid, result.best_fit.reshape(res_z.shape)*scale)
     plt.colorbar()
     return
+
+def fit_all_grid_points(slice, config):
+    qE2fitter = dict()
+    nofit = []
+    for q in slice.grid.qaxis.ticks():
+        for E in slice.grid.Eaxis.ticks():
+            print q, E
+            try:
+                qE2fitter[(q,E)] = fit(q, E, slice, config)
+            except:
+                nofit.append((q,E))
+        continue
+    return qE2fitter, nofit
+
+def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
+    qs = slice.grid.qaxis.ticks()
+    Es = slice.grid.Eaxis.ticks()
+    ncols = len(qs)
+    nrows = len(Es)
+    res_2d_grid = slice.res_2d_grid
+    hkl_projection = slice.hkl_projection
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+    for irow in range(nrows):
+        for icol in range(ncols):
+            q = qs[icol]
+            E = Es[irow]
+            fitter = qE2fitter.get((q,E))
+            if fitter is None: continue
+            dqgrid, dEgrid = fitter.qEgrids
+            result = fitter.fit_result
+            ax1 = axes[irow][icol]
+            ax1.set_title("q=%.2f, E=%.2f" % (q, E))
+            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape))
+    plt.tight_layout()
+    return
+
+def save_fits_as_pickle(qE2fitter, path):
+    qE2fitres_tosave = dict()
+
+    for qe in qE2fitter.keys():
+        fr = qE2fitter[qe].fit_result
+        fr_tosave = fit_ellipsoid.FitResult()
+        fr_tosave.best_values = fr.best_values
+        qE2fitres_tosave[qe] = fr_tosave
+        continue
+
+    import pickle as pkl
+    pkl.dump(qE2fitres_tosave, open(path, 'w'))
+    return
+
+def print_parameter_table(qE2fitres, config):
+    keys = qE2fitres.values()[0].best_values.keys()
+    print "%5s %5s" % ('q','E'),
+    for k in keys: print ('%8s' % k[:8]),
+    print
+    qEs = qE2fitres.keys()
+    for q, E in qEs:
+        if not (q,E) in qE2fitres: continue
+        result = qE2fitres[(q,E)]
+        print "%5.1f %5.1f" % (q,E),
+        for k in keys:
+            v = result.best_values[k]
+            print ('%8.4f' % v),
+        print
