@@ -136,6 +136,11 @@ def fit_all_grid_points(slice, config):
             except:
                 nofit.append((q,E))
         continue
+    # qEranges is an import parameter that need to be rememberd
+    fitter1 = qE2fitter.values()[0]
+    slice.res_2d_grid.qEranges = fit_ellipsoid.qEgrid2range(*fitter1.qEgrids)
+    for fitter in qE2fitter.values()[1:]:
+        assert slice.res_2d_grid.qEranges == fit_ellipsoid.qEgrid2range(*fitter.qEgrids)
     return qE2fitter, nofit
 
 def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
@@ -174,7 +179,7 @@ def save_fits_as_pickle(qE2fitter, path):
     pkl.dump(qE2fitres_tosave, open(path, 'w'))
     return
 
-def print_parameter_table(qE2fitres, config):
+def print_parameter_table(qE2fitres):
     keys = qE2fitres.values()[0].best_values.keys()
     print "%5s %5s" % ('q','E'),
     for k in keys: print ('%8s' % k[:8]),
@@ -188,3 +193,26 @@ def print_parameter_table(qE2fitres, config):
             v = result.best_values[k]
             print ('%8.4f' % v),
         print
+    return
+
+
+def createInterpModel(qE2fitres, slice):
+    # Get parameters as lists, ready for interpolation
+    keys = qE2fitres.values()[0].best_values.keys()
+    qEs_all = qE2fitres.keys()
+    qE_points = []
+    param_values = dict()
+    for k in keys:
+        param_values[k] = []
+    for q,E in qEs_all:
+        if (q,E) not in qE2fitres: continue
+        result = qE2fitres[(q,E)]
+        bv = result.best_values
+        qE_points.append((q,E))
+        for k in keys:
+            vals = param_values[k]
+            v = bv[k]
+            vals.append(v)
+        continue
+    qrange, Erange = slice.res_2d_grid.qEranges
+    return fit_ellipsoid.InterpModel(qE_points, param_values, qrange, Erange)
