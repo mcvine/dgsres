@@ -16,13 +16,21 @@ from .fit_2d_psf import Fit as base
 
 class Fit(base):
 
-    def fit(self, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None):
+    def fit(self, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=(-np.pi/2, np.pi/2)):
         """
+        the fitting is done by looking at two axes, one along the main axis of the covariance matrix,
+        without considering the tail, the other along the tail direction.
+
         alpha_bounds: 
 
             alpha (and beta) values can be 180 degree off.
             to make interpolation easy it is better to get all alpha values in a certain range
             if alpha_bounds is given, the code here will try to keep alpha within bounds
+
+        gaussian2d_threshold:
+
+            The threshold here determins the data included in calculating the main axis of the 
+            covariance matrix.
         """
         qgrid, Egrid = self.qEgrids
         self.res_z = res_z = self.get_res_z()
