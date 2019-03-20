@@ -93,10 +93,11 @@ def fit_all_in_one(config):
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
-                plot_resfits_on_grid(qE2fitter, config.GammaA, config, figsize=(10,10))
+                plot_resfits_on_grid(qE2fitter, sl, config, figsize=(10,10))
                 plot.add_plot(width=pylatex.NoEscape(width))
                 plot.add_caption('Fitted resolution functions for %s' % sl.name)
                 plt.close()
+            doc.append(pylatex.utils.NoEscape(r"\clearpage"))
         # save
         pklfile = '%s-fit_results.pkl' % sl.name
         save_fits_as_pickle(qE2fitter, pklfile)
