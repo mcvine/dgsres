@@ -108,6 +108,21 @@ def fit_all_in_one(config):
         with doc.create(pylatex.Subsection('Fitted parameters')):
             s = format_parameter_table(qE2fitres)
             doc.append(_wph.verbatim(s))
+
+        # interpolated model
+        with doc.create(pylatex.Subsection('Interpolated model')):
+            imodel = get_interped_resolution_model(sl)
+            qs = (qaxis.ticks() + qaxis.step/2.)[:-1]
+            Es = (Eaxis.ticks() + Eaxis.step/2.)[:-1]
+            dqgrid, dEgrid = qE2fitter.values()[0].qEgrids
+            # plot
+            with doc.create(pylatex.Figure(position='htbp')) as plot:
+                plt.figure()
+                plot_interpolated_resolution_on_grid(imodel, qs, Es, dqgrid, dEgrid, figsize=(10,10))
+                plot.add_plot(width=pylatex.NoEscape(width))
+                plot.add_caption('Interpolated resolution functions for %s' % sl.name)
+                plt.close()
+            doc.append(pylatex.utils.NoEscape(r"\clearpage"))
             
         # one by one comparison plots
         with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
@@ -119,10 +134,17 @@ def fit_all_in_one(config):
                     plot.add_caption('Resolution at q=%s, E=%s' % qE)
                     plt.close()
                 doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
+                
         # save PDF
         doc.generate_pdf(clean_tex=False)
         continue
     return
+
+def get_interped_resolution_model(sl):
+    import pickle as pkl
+    qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name))
+    qE2fitres = fill_in_blanks_for_fits(qE2fitres, sl)
+    return create_interp_model(qE2fitres, sl)
 
 def fill_in_blanks_for_fits(qE2fitter, sl):
     """due to limit of dynamical range measured, some grid points no data is available. 
@@ -216,7 +238,7 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
     for irow in range(nrows):
         for icol in range(ncols):
             q = qs[icol]
-            E = Es[irow]
+            E = Es[nrows-irow-1]
             simdir = config.simdir(q,E, slice)
             try:
                 probs = np.load('%s/probs.npy' % simdir)
@@ -320,7 +342,7 @@ def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
     for irow in range(nrows):
         for icol in range(ncols):
             q = qs[icol]
-            E = Es[irow]
+            E = Es[nrows-irow-1]
             fitter = qE2fitter.get((q,E))
             if fitter is None: continue
             dqgrid, dEgrid = fitter.qEgrids
@@ -397,7 +419,7 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
     for irow in range(nrows):
         for icol in range(ncols):
             q = qs[icol]
-            E = Es[irow]
+            E = Es[nrows-irow-1]
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
