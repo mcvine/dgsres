@@ -124,6 +124,35 @@ def fit_all_in_one(config):
         continue
     return
 
+def fill_in_blanks_for_fits(qE2fitter, sl):
+    """due to limit of dynamical range measured, some grid points no data is available. 
+    has to fill in blanks at corners"""
+    # find corners
+    qticks = sl.grid.qaxis.ticks()
+    qmin = qticks[0]; qmax = qticks[-1]
+    Eticks = sl.grid.Eaxis.ticks()
+    Emin = Eticks[0]; Emax = Eticks[-1]
+    corners = [(qmin, Emin), (qmax, Emin), (qmin, Emax), (qmax, Emax)]
+    #
+    for corner in corners:
+        if corner in qE2fitter: continue
+        q1, E1 = corner
+        Esearch = Eticks
+        if E1==Eticks[-1]: Esearch = Esearch[::-1]
+        qsearch = qticks
+        if q1==qticks[-1]: qsearch = qsearch[::-1]
+        found = False
+        for E2 in Esearch:
+            for q2 in qsearch:
+                if (q2,E2) in qE2fitter:
+                    found = True
+                    break
+            if found: break
+        if found:
+            qE2fitter[corner] = qE2fitter[(q2, E2)]
+    return qE2fitter
+        
+                    
 def plotDynRange(hkl0, hkl_projection, qaxis, Erange, config):
     from mcvine.workflow.singlextal import dynrange
     from mcvine.workflow.sample import loadSampleYml
@@ -306,9 +335,11 @@ def save_fits_as_pickle(qE2fitter, path):
     qE2fitres_tosave = dict()
 
     for qe in qE2fitter.keys():
-        fr = qE2fitter[qe].fit_result
+        fitter = qE2fitter[qe]
+        fr = fitter.fit_result
         fr_tosave = fit_ellipsoid.FitResult()
         fr_tosave.best_values = fr.best_values
+        fr_tosave.qEranges = fit_ellipsoid.qEgrid2range(*fitter.qEgrids)
         qE2fitres_tosave[qe] = fr_tosave
         continue
 
@@ -322,7 +353,8 @@ def format_parameter_table(qE2fitres):
     line = "%6s%6s" % ('q','E')
     for k in keys: line += '%8s' % k[:8]
     lines.append(line)
-    qEs = qE2fitres.keys()
+    qEs = list(qE2fitres.keys())
+    qEs.sort(key=lambda x: (x[1],x[0]))
     for q, E in qEs:
         if not (q,E) in qE2fitres: continue
         result = qE2fitres[(q,E)]
@@ -355,5 +387,22 @@ def create_interp_model(qE2fitres, slice):
             v = bv[k]
             vals.append(v)
         continue
-    qrange, Erange = slice.res_2d_grid.qEranges
+    qrange, Erange = result.qEranges
     return fit_ellipsoid.InterpModel(qE_points, param_values, qrange, Erange)
+
+def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=(10,10)):
+    ncols = len(qs)
+    nrows = len(Es)
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+    for irow in range(nrows):
+        for icol in range(ncols):
+            q = qs[icol]
+            E = Es[irow]
+            ax1 = axes[irow][icol]
+            ax1.set_title("q=%.2f, E=%.2f" % (q, E))
+            z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
+            ax1.pcolormesh(dqgrid, dEgrid, z)
+            continue
+        continue
+    plt.tight_layout()
+    return
