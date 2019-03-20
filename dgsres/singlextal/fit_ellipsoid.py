@@ -147,8 +147,14 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
         print "    chisq=%s" % result.chisqr
         # print
     results.sort(key=lambda x: x.chisqr)
-    return results[0]
-
+    result = results[0]
+    # fix alpha and refit
+    alpha1 = result.best_values['alpha']
+    alpha = adjust_to_within_bounds(alpha1, alpha_bounds, period=np.pi)
+    if alpha != alpha1:
+        model.set_param_hint('alpha', value=alpha, vary=False)
+        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
+    return result
 
 def guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=None, beta=None, alpha_bounds=None):
     alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma = guess_results = fitguess(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha, beta=beta, alpha_bounds=alpha_bounds)
