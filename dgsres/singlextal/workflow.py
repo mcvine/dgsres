@@ -7,7 +7,121 @@ see
 import os, shutil, subprocess as sp, time
 import numpy as np
 from matplotlib import pyplot as plt
-from . import use_res_comps, fit_ellipsoid
+from . import use_res_comps, fit_ellipsoid, _workflow_pdf_helpers as _wph
+from mcvine.workflow import singlextal as sx
+
+
+def simulate_all_in_one(config):
+    "simulate all grid points, and compose PDF reports"
+    import pylatex
+    Ei = config.Ei
+    Erange = (-0.3*Ei, .95*Ei)
+    for sl in config.slices:
+        doc = _wph.initReportDoc("%s-sim-report" % sl.name) # report document
+        # info
+        _wph.slice_info_section(sl, doc)
+        
+        qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
+
+        # dyn range plot
+        # larger q range for a broader view 
+        ratio = 1.
+        expanded_qaxis = sx.axis(
+            min=qaxis.min-(qaxis.max-qaxis.min)*ratio/2,
+            max=qaxis.max+(qaxis.max-qaxis.min)*ratio/2,
+            step=qaxis.step
+        ).ticks()
+        width = r'1\textwidth'
+        with doc.create(pylatex.Section('Dynamical range')):
+            with doc.create(pylatex.Figure(position='htbp')) as plot:
+                plt.figure()
+                plotDynRange(
+                    sl.hkl0, sl.hkl_projection,
+                    qaxis= expanded_qaxis, Erange=Erange,
+                    config=config)
+                plot.add_plot(width=pylatex.NoEscape(width))
+                plot.add_caption('Dynamical range for slice %s' % sl.name)
+                plt.close()
+
+        # simulate
+        with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
+            outputs, failed = simulate_all_grid_points(
+                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=False)
+
+            if failed:
+                # this seems unecessary as what is missing is clear in the plot
+                """
+                doc.append("Failed to calculate resolution functions for the following (Q,E) pairs:")
+                with doc.create(pylatex.Itemize()) as itemize:
+                    for f in failed:
+                        itemize.add_item(str(f))
+                """
+                pass
+            # plot
+            with doc.create(pylatex.Figure(position='htbp')) as plot:
+                plt.figure()
+                plot_resolution_on_grid(config.GammaA, config, figsize=(10, 10))
+                plot.add_plot(width=pylatex.NoEscape(width))
+                plot.add_caption('Simulated resolution functions for %s' % sl.name)
+                plt.close()
+        # save pdf
+        doc.generate_pdf(clean_tex=False)
+        continue
+    return
+
+def fit_all_in_one(config):
+    "fit all grid points, and compose PDF reports"
+    import pylatex, dill
+    Ei = config.Ei
+    Erange = (-0.3*Ei, .95*Ei)
+    width = r'1\textwidth'
+    for sl in config.slices:
+        doc = _wph.initReportDoc("%s-fit-report" % sl.name) # report document
+        qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
+        # info
+        _wph.slice_info_section(sl, doc)
+        
+        # fit
+        with doc.create(pylatex.Section('Fit resolution functions on grid')):
+            # path to saved result
+            path = '%s-fit_all_grid_points.dill' % sl.name
+            if os.path.exists(path):
+                qE2fitter, nofit = dill.load(open(path))
+            else:
+                qE2fitter, nofit = fit_all_grid_points(sl, config, use_cache=True)
+                dill.dump((qE2fitter, nofit), open(path, 'w'), recurse=True)
+            # plot
+            with doc.create(pylatex.Figure(position='htbp')) as plot:
+                plt.figure()
+                plot_resfits_on_grid(qE2fitter, config.GammaA, config, figsize=(10,10))
+                plot.add_plot(width=pylatex.NoEscape(width))
+                plot.add_caption('Fitted resolution functions for %s' % sl.name)
+                plt.close()
+        # save
+        pklfile = '%s-fit_results.pkl' % sl.name
+        save_fits_as_pickle(qE2fitter, pklfile)
+        import pickle as pkl
+        qE2fitres = pkl.load(open(pklfile))
+        
+        # parameters
+        with doc.create(pylatex.Subsection('Fitted parameters')):
+            s = format_parameter_table(qE2fitres)
+            doc.append(_wph.verbatim(s))
+            
+        # one by one comparison plots
+        with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
+            for qE, fitter in qE2fitter.items():
+                with doc.create(pylatex.Figure(position='htbp')) as plot:
+                    plt.figure()
+                    plot_compare_fit_to_data(fitter)
+                    plot.add_plot(width=pylatex.NoEscape(width))
+                    plot.add_caption('Resolution at q=%s, E=%s' % qE)
+                    plt.close()
+                doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
+        # save PDF
+        doc.generate_pdf(clean_tex=False)
+        continue
+    return
 
 def plotDynRange(hkl0, hkl_projection, qaxis, Erange, config):
     from mcvine.workflow.singlextal import dynrange
@@ -47,11 +161,12 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
     return out
 
 
-def simulate_all_grid_points(slice, config, Nrounds_beam=1):
+def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
     failed = []; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             simdir = config.simdir(q,E, slice)
+            if not overwrite and os.path.exists(simdir): continue
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
             except:
@@ -94,7 +209,12 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
     return
 
 
-def fit(q, E, slice, config):
+def fit(q, E, slice, config, use_cache=False):
+    if use_cache:
+        import dill
+        path = '%s-q_%.3f-E_%.3f-fitter.dill' % (slice.name, q, E)
+        if os.path.exists(path):
+            return dill.load(open(path))
     from dgsres.singlextal import fit_ellipsoid
     datadir = config.simdir(q,E,slice)
     qaxis = slice.res_2d_grid.qaxis
@@ -108,31 +228,47 @@ def fit(q, E, slice, config):
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
     fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
     fitter.fit_result = fitter.fit(**fitting_params)
+    if use_cache:
+        dill.dump(fitter, open(path, 'w'))
     return fitter
 
 
-def plot_compare_fit_to_data(fitter, figsize=(8,4)):
+def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     res_z = fitter.res_z
     qgrid, Egrid = fitter.qEgrids
     result = fitter.fit_result
     plt.figure(figsize=figsize)
-    plt.subplot(1,2,1)
+    plt.subplot(2,2,1)
+    plt.title('mcvine sim')
     plt.pcolormesh(qgrid, Egrid, res_z)
     plt.colorbar()
-    plt.subplot(1,2,2)
+    plt.subplot(2,2,2)
+    plt.title('fit')
     scale = res_z.sum()/result.best_fit.sum()
-    plt.pcolormesh(qgrid, Egrid, result.best_fit.reshape(res_z.shape)*scale)
+    iqe_fit = result.best_fit.reshape(res_z.shape)*scale
+    plt.pcolormesh(qgrid, Egrid, iqe_fit)
     plt.colorbar()
+
+    qs = qgrid[0]; Es = Egrid[:,0]
+    plt.subplot(2,2,3)
+    plt.plot(qs, res_z.sum(0), label='mcvine sim')
+    plt.plot(qs, iqe_fit.sum(0), label='fit')
+    plt.legend()
+    plt.subplot(2,2,4)
+    plt.plot(Es, res_z.sum(1), label='mcvine sim')
+    plt.plot(Es, iqe_fit.sum(1), label='fit')
+    plt.legend()
+    
     return
 
-def fit_all_grid_points(slice, config):
+def fit_all_grid_points(slice, config, use_cache=False):
     qE2fitter = dict()
     nofit = []
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             print q, E
             try:
-                qE2fitter[(q,E)] = fit(q, E, slice, config)
+                qE2fitter[(q,E)] = fit(q, E, slice, config, use_cache=use_cache)
             except:
                 nofit.append((q,E))
         continue
@@ -179,22 +315,26 @@ def save_fits_as_pickle(qE2fitter, path):
     pkl.dump(qE2fitres_tosave, open(path, 'w'))
     return
 
-def print_parameter_table(qE2fitres):
+def format_parameter_table(qE2fitres):
     keys = qE2fitres.values()[0].best_values.keys()
-    print "%5s %5s" % ('q','E'),
-    for k in keys: print ('%8s' % k[:8]),
-    print
+    lines = []
+    line = "%6s%6s" % ('q','E')
+    for k in keys: line += '%8s' % k[:8]
+    lines.append(line)
     qEs = qE2fitres.keys()
     for q, E in qEs:
         if not (q,E) in qE2fitres: continue
         result = qE2fitres[(q,E)]
-        print "%5.1f %5.1f" % (q,E),
+        line = "%6.1f%6.1f" % (q,E)
         for k in keys:
             v = result.best_values[k]
-            print ('%8.4f' % v),
-        print
-    return
+            line += '%8.4f' % v
+        lines.append(line)
+    return '\n'.join(lines)
 
+def print_parameter_table(qE2fitres):
+    s = format_parameter_table(qE2fitres)
+    return s
 
 def create_interp_model(qE2fitres, slice):
     # Get parameters as lists, ready for interpolation
