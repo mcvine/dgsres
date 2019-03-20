@@ -259,12 +259,12 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, a
     Nbins = 200
     Ixp, xp_bb = np.histogram(xpg.flatten(), bins=Nbins, weights=I.flatten())
     norm_xp, xp_bb = np.histogram(xpg.flatten(), bins=Nbins)
-    Ixp /= norm_xp
+    Ixp /= norm_xp; Ixp[Ixp!=Ixp] = 0
     xp_bc = (xp_bb[1:] + xp_bb[:-1])/2
     # histogram I(y)
     Iy, y_bb = np.histogram(yg.flatten(), bins=Nbins, weights=I.flatten())
     norm_y, y_bb = np.histogram(yg.flatten(), bins=Nbins)
-    Iy /= norm_y
+    Iy /= norm_y; Iy[Iy!=Iy] = 0
     y_bc = (y_bb[1:] + y_bb[:-1])/2
     # return xpg, yg, xp_bc, Ixp, y_bc, Iy
     # guess of gaussian width and center
