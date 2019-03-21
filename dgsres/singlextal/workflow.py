@@ -60,7 +60,7 @@ def simulate_all_in_one(config):
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
-                plot_resolution_on_grid(config.GammaA, config, figsize=(10, 10))
+                plot_resolution_on_grid(sl, config, figsize=(10, 10))
                 plot.add_plot(width=pylatex.NoEscape(width))
                 plot.add_caption('Simulated resolution functions for %s' % sl.name)
                 plt.close()
