@@ -46,7 +46,7 @@ def get_thin_slice_using_spinw(ml_slice_func, slice):
     return qmg, Emg, slice_img
 
 
-def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=17):
+def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=None):
     convolver = slice.convolution.calculator
     qs = convolver.finer_expanded_grid.xaxis.ticks()
     Es = convolver.finer_expanded_grid.yaxis.ticks()
@@ -63,6 +63,7 @@ def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=17):
 
     perp1_range, perp2_range = slice.expdata.perp_hkl_range
     perp1_dir, perp2_dir = slice.expdata.perp_hkl_directions
+    Nsample_perp = Nsample_perp or slice.expdata.Nsample_perp_hkl
     for q_perp1 in tqdm.tqdm(np.linspace(perp1_range[0], perp1_range[1], Nsample_perp)):
         for q_perp2 in np.linspace(perp2_range[0], perp2_range[1], Nsample_perp):
             # the q offset at the perpendicular directions
