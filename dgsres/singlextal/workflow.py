@@ -140,6 +140,63 @@ def fit_all_in_one(config):
         continue
     return
 
+def create_convolution_calculator(slice, resolution_range=None):
+    """Create a "convoler", instance of .convolve2d.Convolver from slice convolution specs
+    
+    Example slice convolution specification:
+
+        %%file convolution_config.py
+        import os, numpy as np, imp
+        narr = np.array
+        from dgsres import axis
+        here = os.path.abspath(os.path.dirname(__file__) or '.')
+        # load the resolution calculation configration
+        rwc = imp.load_source('rwc', os.path.join(here, './mcvinesim/resolution_workflow_config.py'))
+        resolution_datadir = os.path.join(here, 'mcvinesim')
+
+        class Slice_00L(rwc.Slice_00L):
+
+            class expdata:
+                "The experimental data to model"
+                class grid:
+                    qaxis = axis(min=0, max=4.+1e-5, step=0.5/20)
+                    Eaxis = axis(min=10., max=27.+1e-5, step=0.2)
+                perp_hkl_directions = narr([[1.,0.,0.], [0.,1.,0.]])
+                dh = 0.1
+                perp_hkl_range = narr([[-dh, dh], [-dh, dh]])
+
+            class convolution:
+                expansion_ratio = 0.1
+                N_subpixels = 5,5
+    """
+    from dgsres import axis
+    from . import convolve2d as cvv2
+
+    grid = cvv2.Grid(slice.expdata.grid.qaxis, slice.expdata.grid.Eaxis)
+    expansion_ratio = slice.convolution.expansion_ratio
+    qticks = slice.expdata.grid.qaxis.ticks()
+    hkl_start = slice.hkl0 + slice.hkl_projection*qticks[0]
+    hkl_end =  slice.hkl0 + slice.hkl_projection*qticks[-1]
+    perp_hkl_directions = slice.expdata.perp_hkl_directions
+    perp_hkl_range = slice.expdata.perp_hkl_range
+    def res_func(q, E):
+        import os
+        pwd = os.path.abspath(os.curdir)
+        os.chdir(slice.resolution_datadir)
+        imodel = get_interped_resolution_model(slice)
+        ret = imodel.getModel(q,E)
+        os.chdir(pwd)
+        return ret
+    N_subpixels = slice.convolution.N_subpixels
+    if resolution_range is None:
+        res_grid = slice.res_2d_grid
+        dqticks = res_grid.qaxis.ticks()
+        dEticks = res_grid.Eaxis.ticks()
+        resolution_range = dqticks[-1]-dqticks[0], dEticks[-1]-dEticks[0]
+    convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range)
+    slice.convolution.calculator = convolver
+    return slice
+
 def get_interped_resolution_model(sl):
     import pickle as pkl
     qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name))
