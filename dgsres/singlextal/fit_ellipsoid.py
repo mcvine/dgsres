@@ -16,7 +16,7 @@ from .fit_2d_psf import Fit as base
 
 class Fit(base):
 
-    def fit(self, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=(-np.pi/2, np.pi/2)):
+    def fit(self, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=(-np.pi/2, np.pi/2), **kwds):
         """
         the fitting is done by looking at two axes, one along the main axis of the covariance matrix,
         without considering the tail, the other along the tail direction.
@@ -34,7 +34,7 @@ class Fit(base):
         """
         qgrid, Egrid = self.qEgrids
         self.res_z = res_z = self.get_res_z()
-        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold, alpha_bounds=alpha_bounds)
+        return fit(qgrid, Egrid, res_z, rounds=rounds, gaussian2d_threshold=gaussian2d_threshold, alpha_bounds=alpha_bounds, **kwds)
 
     def get_res_z(self):
         reshist = self.mcvine_psf_qE
@@ -117,7 +117,7 @@ def qEgrid2range(qgrid, Egrid):
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     return qrange, Erange
     
-def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None):
+def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None, return_all_results=False):
     if not rounds: rounds = 3
     # convert to unitless
     ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
@@ -134,7 +134,7 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
         results.append(result)
         print "    chisq=%s" % result.chisqr
         # print
-    #
+        
     # alpha may be 90 degrees off
     print "Start fitting with alpha_guess+90degree..."
     alpha, beta = guess_results[:2]
@@ -147,6 +147,8 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
         print "    chisq=%s" % result.chisqr
         # print
     results.sort(key=lambda x: x.chisqr)
+    if return_all_results:
+        return results
     result = results[0]
     # fix alpha and refit
     alpha1 = result.best_values['alpha']
