@@ -64,29 +64,32 @@ def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=None):
     perp1_range, perp2_range = slice.expdata.perp_hkl_range
     perp1_dir, perp2_dir = slice.expdata.perp_hkl_directions
     Nsample_perp = Nsample_perp or slice.expdata.Nsample_perp_hkl
-    for q_perp1 in tqdm.tqdm(np.linspace(perp1_range[0], perp1_range[1], Nsample_perp)):
-        for q_perp2 in np.linspace(perp2_range[0], perp2_range[1], Nsample_perp):
-            # the q offset at the perpendicular directions
-            q_offset = q_perp1*perp1_dir+ q_perp2*perp2_dir
-            # print q_offset
-            # start, end of q points with offset
-            q_start = convolver.expanded_hkl_start + q_offset
-            q_end = convolver.expanded_hkl_end + q_offset
-            # call spinw
-            spec = ml_slice_func(matlab.double(list(q_start)), matlab.double(list(q_end)), Nq_disp)
-            # get data
-            omega = np.asarray(spec['omega'])
-            swInt = np.asarray(spec['swInt'])
-            # loop over branches
-            for branch in range(omega.shape[0]//2):
-                disp1_Es = np.interp(qs, spinw_qs, omega[branch])
-                disp1_Is = np.interp(qs, spinw_qs, swInt[branch])
-                disp1_Ebinindexes = np.array((disp1_Es - Emin)/Estep, dtype=int)
-                qindexes = np.arange(Nq, dtype=int)
-                good = np.logical_and(disp1_Ebinindexes>=0, disp1_Ebinindexes<NE)
-                # print qindexes[good]
-                # slice_img[qindexes[good], disp1_Ebinindexes[good]] += 1
-                slice_img[qindexes[good], disp1_Ebinindexes[good]] += disp1_Is[qindexes[good]]
+    perp_qs = [(qp1, qp2)
+               for qp1 in np.linspace(perp1_range[0], perp1_range[1], Nsample_perp)
+               for qp2 in np.linspace(perp2_range[0], perp2_range[1], Nsample_perp)
+    ]
+    for q_perp1, q_perp2 in tqdm.tqdm(perp_qs):
+        # the q offset at the perpendicular directions
+        q_offset = q_perp1*perp1_dir+ q_perp2*perp2_dir
+        # print q_offset
+        # start, end of q points with offset
+        q_start = convolver.expanded_hkl_start + q_offset
+        q_end = convolver.expanded_hkl_end + q_offset
+        # call spinw
+        spec = ml_slice_func(matlab.double(list(q_start)), matlab.double(list(q_end)), Nq_disp)
+        # get data
+        omega = np.asarray(spec['omega'])
+        swInt = np.asarray(spec['swInt'])
+        # loop over branches
+        for branch in range(omega.shape[0]//2):
+            disp1_Es = np.interp(qs, spinw_qs, omega[branch])
+            disp1_Is = np.interp(qs, spinw_qs, swInt[branch])
+            disp1_Ebinindexes = np.array((disp1_Es - Emin)/Estep, dtype=int)
+            qindexes = np.arange(Nq, dtype=int)
+            good = np.logical_and(disp1_Ebinindexes>=0, disp1_Ebinindexes<NE)
+            # print qindexes[good]
+            # slice_img[qindexes[good], disp1_Ebinindexes[good]] += 1
+            slice_img[qindexes[good], disp1_Ebinindexes[good]] += disp1_Is[qindexes[good]]
     qmg,Emg = np.meshgrid(qs, Es)
     return qmg, Emg, slice_img
 
