@@ -261,7 +261,7 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
     return
 
 
-def fit(q, E, slice, config, use_cache=False):
+def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
     if use_cache:
         import dill
         path = '%s-q_%.3f-E_%.3f-fitter.dill' % (slice.name, q, E)
@@ -279,6 +279,7 @@ def fit(q, E, slice, config, use_cache=False):
     )
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
     fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
+    if extra_fitting_params: fitting_params.update(extra_fitting_params)
     fitter.fit_result = fitter.fit(**fitting_params)
     if use_cache:
         dill.dump(fitter, open(path, 'w'))
@@ -322,14 +323,81 @@ def fit_all_grid_points(slice, config, use_cache=False):
             try:
                 qE2fitter[(q,E)] = fit(q, E, slice, config, use_cache=use_cache)
             except:
+                # import traceback as tb
+                # tb.print_exc()
                 nofit.append((q,E))
         continue
+    # correct alpha
+    # in some cases, candidate values of alpha can be off by pi/2 but give very similar
+    # agreements between the model and the data.
+    # therefore, we need to go through the alpha values of all data and find the outliers,
+    # and change them by 90 degrees
+    outliers = []
+    # create an "image" of alpha values
+    qticks = slice.grid.qaxis.ticks()
+    Eticks = slice.grid.Eaxis.ticks()
+    alpha_image = np.ones( (len(qticks), len(Eticks)) ) * np.nan
+    for iq, q1 in enumerate(qticks):
+        for iE, E1 in enumerate(Eticks):
+            this = q1, E1
+            if this not in qE2fitter: continue
+            alpha_image[iq, iE] = qE2fitter[this].fit_result.best_values['alpha']
+        continue
+    # find outliers
+    N_alphas = (alpha_image==alpha_image).sum()
+    outliers, median = _find_outliers(alpha_image, .26*np.pi, Niter=5)
+    # for each outlier, change alpha value to something similar to neighbor values
+    for iq, q1 in enumerate(qticks):
+        for iE, E1 in enumerate(Eticks):
+            if not outliers[iq, iE]: continue
+            this = q1, E1
+            print "* working on outlier %s" % (this,)
+            old_alpha = alpha_image[iq, iE]
+            m = median[iq, iE]
+            alpha_bounds = (m-np.pi/10, m+np.pi/10)
+            fitter = fit(
+                q1, E1, slice, config, use_cache=False,
+                extra_fitting_params=dict(return_all_results=True)
+            )
+            # choose the best one within the range
+            results = fitter.fit_result
+            within_bounds  = lambda a: a<alpha_bounds[1] and a>alpha_bounds[0]
+            results = [r for r in results if within_bounds(r.best_values['alpha'])]
+            fitter.fit_result = results[0]
+            qE2fitter[this] = fitter
+            print "   old alpha: %s. median alpha: %s. new alpha: %s" % (
+                old_alpha, m, fitter.fit_result.best_values['alpha'])
+        continue
+    #
     # qEranges is an import parameter that need to be rememberd
     fitter1 = qE2fitter.values()[0]
     slice.res_2d_grid.qEranges = fit_ellipsoid.qEgrid2range(*fitter1.qEgrids)
     for fitter in qE2fitter.values()[1:]:
         assert slice.res_2d_grid.qEranges == fit_ellipsoid.qEgrid2range(*fitter.qEgrids)
     return qE2fitter, nofit
+
+def _find_outliers(img, max_deviation, Niter):
+    img2 = img.copy()
+    for i in range(Niter):
+        outliers, median = _find_outliers_1(img2, max_deviation)
+        if outliers.sum()==0: break
+        img2[outliers] = median[outliers]
+    return (img != img2)&(img==img), median
+
+def _find_outliers_1(img, max_deviation):
+    """find outliers in img
+    
+    an outlier is defined as with value significantly different from the median value of its neighborhood
+    `>max_deviation` means too different.
+
+    returns outlier map and median map
+    """
+    # change image value range to 0-240. scikit image median does not work for random floats
+    scale = 240; amax = np.nanmax(img); amin = np.nanmin(img)
+    img1 = img-amin; img1*=scale/(amax-amin) 
+    from skimage.filters import median
+    alpha_median = median(img1.astype('uint8'), mask=(img==img))
+    return np.abs(img1-alpha_median)>max_deviation*scale/(amax-amin), alpha_median*(amax-amin)/scale+amin
 
 def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
     qs = slice.grid.qaxis.ticks()
