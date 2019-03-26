@@ -23,7 +23,7 @@ class Convolver:
     (dq, dE) of the rectangle window for the resolution 
     """
 
-    def __init__(self, grid, expansion_ratio, N_subpixels, res_func, res_range):
+    def __init__(self, grid, expansion_ratio, N_subpixels, res_func, res_range, transpose_res_matrix=True):
         self.grid = grid
         self.expansion_ratio = expansion_ratio
         self.N_subpixels = N_subpixels
@@ -37,6 +37,7 @@ class Convolver:
         dxs = np.arange(-hNx*xstep, (hNx+.5)*xstep, xstep)
         dys = np.arange(-hNy*ystep, (hNy+.5)*ystep, ystep)
         self.res_grids = np.meshgrid(dxs, dys)
+        self.transpose_res_matrix = transpose_res_matrix
         return
 
     def convolve(self, img):
@@ -51,7 +52,10 @@ class Convolver:
         feg = self.finer_expanded_grid
         x = feg.xaxis.ticks()[col]
         y = feg.yaxis.ticks()[row]
-        return self.res_func(x,y).ongrid(*self.res_grids).T
+        rt = self.res_func(x,y).ongrid(*self.res_grids)
+        if self.transpose_res_matrix:
+            rt = rt.T
+        return rt
 
     def _expanded_grid(self):
         grid = self.grid

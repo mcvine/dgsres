@@ -193,7 +193,7 @@ def create_convolution_calculator(slice, resolution_range=None):
         dqticks = res_grid.qaxis.ticks()
         dEticks = res_grid.Eaxis.ticks()
         resolution_range = dqticks[-1]-dqticks[0], dEticks[-1]-dEticks[0]
-    convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range)
+    convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range, transpose_res_matrix=False)
     slice.convolution.calculator = convolver
     return slice
 

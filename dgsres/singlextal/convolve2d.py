@@ -5,8 +5,8 @@ from ..convolve2d import Convolver as base
 class Convolver(base):
     
     def __init__(
-            self, grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, res_range):
-        base.__init__(self, grid, expansion_ratio, N_subpixels, res_func, res_range)
+            self, grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, res_range, transpose_res_matrix=True):
+        base.__init__(self, grid, expansion_ratio, N_subpixels, res_func, res_range, transpose_res_matrix=transpose_res_matrix)
         self.hkl_start = hkl_start
         self.hkl_end = hkl_end
         qticks = grid.xaxis.ticks()
