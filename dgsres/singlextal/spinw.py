@@ -46,7 +46,7 @@ def get_thin_slice_using_spinw(ml_slice_func, slice):
     return qmg, Emg, slice_img
 
 
-def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=None):
+def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=None, sampling_method='linear'):
     convolver = slice.convolution.calculator
     qs = convolver.finer_expanded_grid.xaxis.ticks()
     Es = convolver.finer_expanded_grid.yaxis.ticks()
@@ -64,10 +64,19 @@ def get_slice_using_spinw(ml_slice_func, slice, Nq_disp=500, Nsample_perp=None):
     perp1_range, perp2_range = slice.expdata.perp_hkl_range
     perp1_dir, perp2_dir = slice.expdata.perp_hkl_directions
     Nsample_perp = Nsample_perp or slice.expdata.Nsample_perp_hkl
-    perp_qs = [(qp1, qp2)
-               for qp1 in np.linspace(perp1_range[0], perp1_range[1], Nsample_perp)
-               for qp2 in np.linspace(perp2_range[0], perp2_range[1], Nsample_perp)
-    ]
+    if sampling_method == 'linear':
+        perp_qs = [(qp1, qp2)
+                   for qp1 in np.linspace(perp1_range[0], perp1_range[1], Nsample_perp)
+                   for qp2 in np.linspace(perp2_range[0], perp2_range[1], Nsample_perp)
+        ]
+    elif sampling_method == 'uniform':
+        rs = np.random.random( (Nsample_perp*Nsample_perp, 2) )
+        rs[:, 0] *= perp1_range[1]-perp1_range[0]; rs[:, 0] += perp1_range[0]
+        rs[:, 1] *= perp2_range[1]-perp2_range[0]; rs[:, 0] += perp2_range[0]
+        perp_qs = rs
+    else:
+        raise ValueError("Unknown sampling method %r" % sampling_method)
+        
     for q_perp1, q_perp2 in tqdm.tqdm(perp_qs):
         # the q offset at the perpendicular directions
         q_offset = q_perp1*perp1_dir+ q_perp2*perp2_dir
