@@ -172,6 +172,10 @@ def create_convolution_calculator(slice, resolution_range=None):
     from dgsres import axis
     from . import convolve2d as cvv2
 
+    if not _qEgrid_bigger_than(slice.grid, slice.expdata.grid):
+        import warnings
+        warnings.warn("Resolution calculation grid smaller than exp data grid")
+
     grid = cvv2.Grid(slice.expdata.grid.qaxis, slice.expdata.grid.Eaxis)
     expansion_ratio = slice.convolution.expansion_ratio
     qticks = slice.expdata.grid.qaxis.ticks()
@@ -196,6 +200,15 @@ def create_convolution_calculator(slice, resolution_range=None):
     convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range, transpose_res_matrix=False)
     slice.convolution.calculator = convolver
     return slice
+
+def _qEgrid_bigger_than(grid1, grid2):
+    qticks1 = grid1.qaxis.ticks()
+    qticks2 = grid2.qaxis.ticks()
+    Eticks1 = grid1.Eaxis.ticks()
+    Eticks2 = grid2.Eaxis.ticks()
+    return qticks1[0]<qticks2[0] and qticks1[-1]>qticks2[-1] \
+        and Eticks1[0]<Eticks2[0] and Eticks1[-1]>Eticks2[-1]
+
 
 def get_interped_resolution_model(sl):
     import pickle as pkl
