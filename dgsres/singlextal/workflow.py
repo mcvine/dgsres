@@ -4,7 +4,7 @@ see
 * https://jupyter.sns.gov/user/lj7/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20fit%20-%20improve%20workflow.ipynb
 """
 
-import os, shutil, subprocess as sp, time
+import os, sys, shutil, subprocess as sp, time
 import numpy as np
 from matplotlib import pyplot as plt
 from . import use_res_comps, fit_ellipsoid, _workflow_pdf_helpers as _wph
@@ -173,8 +173,7 @@ def create_convolution_calculator(slice, resolution_range=None):
     from . import convolve2d as cvv2
 
     if not _qEgrid_bigger_than(slice.grid, slice.expdata.grid):
-        import warnings
-        warnings.warn("Resolution calculation grid smaller than exp data grid")
+        sys.stderr.write("slice %s: Resolution calculation grid smaller than exp data grid" % slice.name)
 
     grid = cvv2.Grid(slice.expdata.grid.qaxis, slice.expdata.grid.Eaxis)
     expansion_ratio = slice.convolution.expansion_ratio
@@ -199,13 +198,15 @@ def create_convolution_calculator(slice, resolution_range=None):
         resolution_range = dqticks[-1]-dqticks[0], dEticks[-1]-dEticks[0]
     convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range, transpose_res_matrix=False)
     slice.convolution.calculator = convolver
+    if not _qEgrid_bigger_than(slice.grid, slice.convolution.calculator.finer_expanded_grid):
+        sys.stderr.write("slice %s: Resolution calculation grid smaller than convolution expanded grid" % slice.name)
     return slice
 
 def _qEgrid_bigger_than(grid1, grid2):
     qticks1 = grid1.qaxis.ticks()
-    qticks2 = grid2.qaxis.ticks()
+    qticks2 = (getattr(grid2, 'qaxis', None) or grid2.xaxis).ticks()
     Eticks1 = grid1.Eaxis.ticks()
-    Eticks2 = grid2.Eaxis.ticks()
+    Eticks2 = (getattr(grid2, 'Eaxis', None) or grid2.yaxis).ticks()
     return qticks1[0]<qticks2[0] and qticks1[-1]>qticks2[-1] \
         and Eticks1[0]<Eticks2[0] and Eticks1[-1]>Eticks2[-1]
 
@@ -443,7 +444,8 @@ def fit_all_grid_points(slice, config, use_cache=False):
     fitter1 = qE2fitter.values()[0]
     slice.res_2d_grid.qEranges = fit_ellipsoid.qEgrid2range(*fitter1.qEgrids)
     for fitter in qE2fitter.values()[1:]:
-        assert slice.res_2d_grid.qEranges == fit_ellipsoid.qEgrid2range(*fitter.qEgrids)
+        assert np.allclose(slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids)), \
+            "qEranges mistmatch: %s vs %s" % (slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids))
     return qE2fitter, nofit
 
 def _find_outliers(img, max_deviation, Niter):
