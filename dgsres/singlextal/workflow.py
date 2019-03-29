@@ -392,7 +392,10 @@ def fit_all_grid_points(slice, config, use_cache=False):
         for E in slice.grid.Eaxis.ticks():
             print q, E
             try:
-                qE2fitter[(q,E)] = fit(q, E, slice, config, use_cache=use_cache)
+                fitter = fit(q, E, slice, config, use_cache=use_cache)
+                xp_center = fitter.fit_result.best_values['xp_center']
+                if np.abs(xp_center)>0.1: continue
+                qE2fitter[(q,E)] = fitter
             except:
                 # import traceback as tb
                 # tb.print_exc()
@@ -424,8 +427,8 @@ def fit_all_grid_points(slice, config, use_cache=False):
             this = q1, E1
             print "* working on outlier %s" % (this,)
             old_alpha = alpha_image[iq, iE]
-            m = median[iq, iE]
-            alpha_bounds = (m-np.pi/10, m+np.pi/10)
+            median_alpha = median[iq, iE]
+            alpha_bounds = (median_alpha-np.pi/10, median_alpha+np.pi/10)
             fitter = fit(
                 q1, E1, slice, config, use_cache=False,
                 extra_fitting_params=dict(return_all_results=True)
@@ -433,11 +436,17 @@ def fit_all_grid_points(slice, config, use_cache=False):
             # choose the best one within the range
             results = fitter.fit_result
             within_bounds  = lambda a: a<alpha_bounds[1] and a>alpha_bounds[0]
-            results = [r for r in results if within_bounds(r.best_values['alpha'])]
-            fitter.fit_result = results[0]
+            good_results = [r for r in results if within_bounds(r.best_values['alpha'])]
+            if not good_results:
+                chisqs = [r.chisqr for r in results]
+                median_chisq = np.median(chisqs)
+                candidates = [(np.abs(r.best_values['alpha']-median_alpha), r) for r in results if r.chisqr < median_chisq+1]
+                fitter.fit_result = sorted(candidates)[0][1]
+            else:
+                fitter.fit_result = good_results[0]
             qE2fitter[this] = fitter
             print "   old alpha: %s. median alpha: %s. new alpha: %s" % (
-                old_alpha, m, fitter.fit_result.best_values['alpha'])
+                old_alpha, median_alpha, fitter.fit_result.best_values['alpha'])
         continue
     #
     # qEranges is an import parameter that need to be rememberd
