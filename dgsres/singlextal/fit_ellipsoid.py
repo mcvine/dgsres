@@ -238,7 +238,7 @@ def weighted_avg_and_std(values, weights):
     variance = np.average((values-average)**2, weights=weights)
     return (average, np.sqrt(variance))
 
-def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, alpha_bounds=None):
+def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, alpha_bounds=None, beta_bounds=None):
     """return guess parameters for fitting
 
     alpha and beta if provided, will not be guessed
@@ -255,6 +255,8 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, a
         alpha = adjust_to_within_bounds(alpha, alpha_bounds, period=np.pi)
     if beta is None:
         beta = getBeta(ugrid, vgrid, I)
+    beta_bounds = beta_bounds or (0, np.pi)
+    beta = adjust_to_within_bounds(beta, beta_bounds, period=np.pi)
     print "Guessed alpha,beta=", np.rad2deg([alpha, beta])
     # initial guess for x and y profiles
     # x is gaussian, y is asymmetric
