@@ -25,7 +25,8 @@ class Fit(base):
 
             alpha (and beta) values can be 180 degree off.
             to make interpolation easy it is better to get all alpha values in a certain range
-            if alpha_bounds is given, the code here will try to keep alpha within bounds
+            if alpha_bounds is given, the code here will try to keep alpha within bounds.
+            beta should have bounds too; but it is right now somewhat hard-coded.
 
         gaussian2d_threshold:
 

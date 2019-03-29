@@ -1,7 +1,25 @@
 """
-see
-* https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20simulations%20-%20improve%20workflow.ipynb
-* https://jupyter.sns.gov/user/lj7/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/resolution%20fit%20-%20improve%20workflow.ipynb
+Facilitate resolution simulation, fitting, interpolation, and convolution.
+
+Overall workflow
+* beam simulation
+* resolution calculation
+  - configuration
+  - simulation
+  - fitting
+  - interpolation
+* convolution
+  - configuration
+  - dispersion calculation (spinw)
+  - convolution
+
+The main inputs for resolution calculation and convolution are beam, sample, and slice specs.
+The beam will be simulated and the result will be a directory with output files.
+The sample spec is a yaml file.
+The slice specs are stored in the configuration file, which is a python file.
+Example notebook creating the sample yaml file and a slice spec file:
+https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/fitall/resolution%20-%20configuration.ipynb
+This python module, when loaded, will be the input used by several of the methods in this module.
 """
 
 import os, sys, shutil, subprocess as sp, time
@@ -12,7 +30,11 @@ from mcvine.workflow import singlextal as sx
 
 
 def simulate_all_in_one(config):
-    "simulate all grid points, and compose PDF reports"
+    """simulate all grid points, and compose PDF reports
+
+    A PDF includes basic info, a plot of dynamical range, and a plot of simulated resolution functions
+    on a grid.
+    """
     import pylatex
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
@@ -70,7 +92,12 @@ def simulate_all_in_one(config):
     return
 
 def fit_all_in_one(config):
-    "fit all grid points, and compose PDF reports"
+    """fit all grid points, and compose PDF reports
+    
+    A PDF includes fitted resolution function plot, a table of fitting parameters,
+    a grid plot of interpolated resolution functions,
+    and plots of comparison between the simulated and fitted resolution functions.
+    """
     import pylatex, dill
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
