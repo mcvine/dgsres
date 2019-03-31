@@ -20,6 +20,81 @@ The slice specs are stored in the configuration file, which is a python file.
 Example notebook creating the sample yaml file and a slice spec file:
 https://jupyter.sns.gov/user/{USER}/notebooks/data/SNS/SEQ/IPTS-16800/shared/resolution/fitall/resolution%20-%20configuration.ipynb
 This python module, when loaded, will be the input used by several of the methods in this module.
+
+Example slice specification:
+
+  import os, numpy as np
+  thisdir = os.path.abspath(os.path.dirname(__file__) or '.')
+  # instrument
+  from dgsres.instruments import cncs as instrument
+  # sample
+  sample_yaml = os.path.join(thisdir, 'sample.yaml')
+  # exp condition
+  beam = os.path.join(thisdir, "beam-12meV-n1e10/")
+  Ei = 12.119602693982308
+  # 
+  from mcvine.workflow import singlextal as sx
+  psi_scan = sx.axis(min=0., max=181., step=1.)
+  # simulation configuration
+  # sim directory name
+  def simdir(q, E, slice):
+      return 'sim-%s-q_%.3f,E_%.3f' % (slice.name, q, E)
+  sim_Nrounds_beam = 10
+  # slice
+  class Slice_00L:
+      name = '00L'
+      hkl_projection = np.array([0,0,1.])
+      hkl0 = np.array([0,0,0.])
+
+      class grid:
+          "simulations will be done for points on this grid"
+          qaxis = sx.axis(min=-.5, max=4.5, step=0.6)
+          Eaxis = sx.axis(min=-4., max=12.1, step=4.)
+  # more slices can be defined similarly
+  # slices
+  slices = [Slice_00L]
+  # resolution grid for all slices. it could be unique for each slice if needed
+  class res_2d_grid:
+      "resolution data will be histogrammed into this grid"
+      qaxis = sx.axis(min=-0.25, max=0.25, step=0.01)
+      Eaxis = sx.axis(min=-2., max=2., step=.05)
+  # fitting specs for all slices. it could be unique for each slice if needed
+  class fitting:
+      rounds = 3
+      gaussian2d_threshold = 0.5
+      alpha_bounds = (-np.pi/2, np.pi/2)
+  #
+  for sl in slices:
+      sl.res_2d_grid = res_2d_grid
+      sl.fitting = fitting
+
+
+Example slice convolution specification:
+
+  %%file convolution_config.py
+  import os, numpy as np, imp
+  narr = np.array
+  from dgsres import axis
+  here = os.path.abspath(os.path.dirname(__file__) or '.')
+  # load the resolution calculation configration
+  rwc = imp.load_source('rwc', os.path.join(here, './mcvinesim/resolution_workflow_config.py'))
+  resolution_datadir = os.path.join(here, 'mcvinesim')
+
+  class Slice_00L(rwc.Slice_00L):
+
+      class expdata:
+          "The experimental data to model"
+          class grid:
+              qaxis = axis(min=0, max=4.+1e-5, step=0.5/20)
+              Eaxis = axis(min=10., max=27.+1e-5, step=0.2)
+          perp_hkl_directions = narr([[1.,0.,0.], [0.,1.,0.]])
+          dh = 0.1
+          perp_hkl_range = narr([[-dh, dh], [-dh, dh]])
+
+      class convolution:
+          expansion_ratio = 0.1
+          N_subpixels = 5,5
+
 """
 
 import os, sys, shutil, subprocess as sp, time
@@ -168,33 +243,7 @@ def fit_all_in_one(config):
     return
 
 def create_convolution_calculator(slice, resolution_range=None):
-    """Create a "convoler", instance of .convolve2d.Convolver from slice convolution specs
-    
-    Example slice convolution specification:
-
-        %%file convolution_config.py
-        import os, numpy as np, imp
-        narr = np.array
-        from dgsres import axis
-        here = os.path.abspath(os.path.dirname(__file__) or '.')
-        # load the resolution calculation configration
-        rwc = imp.load_source('rwc', os.path.join(here, './mcvinesim/resolution_workflow_config.py'))
-        resolution_datadir = os.path.join(here, 'mcvinesim')
-
-        class Slice_00L(rwc.Slice_00L):
-
-            class expdata:
-                "The experimental data to model"
-                class grid:
-                    qaxis = axis(min=0, max=4.+1e-5, step=0.5/20)
-                    Eaxis = axis(min=10., max=27.+1e-5, step=0.2)
-                perp_hkl_directions = narr([[1.,0.,0.], [0.,1.,0.]])
-                dh = 0.1
-                perp_hkl_range = narr([[-dh, dh], [-dh, dh]])
-
-            class convolution:
-                expansion_ratio = 0.1
-                N_subpixels = 5,5
+    """Create a "convoler", instance of .convolve2d.Convolver from slice convolution specs    
     """
     from dgsres import axis
     from . import convolve2d as cvv2
