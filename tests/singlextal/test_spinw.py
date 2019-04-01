@@ -4,7 +4,7 @@ import os, numpy as np, unittest as ut
 from dgsres.singlextal import spinw, convolve2d as cvv2
 from mcvine.workflow import singlextal as sx
 plot = False
-# plot = True
+plot = True
 
 here = os.path.dirname(__file__)
 expected_res_dir = os.path.join(here, 'expected-results')
@@ -80,7 +80,7 @@ class TestCase(ut.TestCase):
         return
     
     def test_get_thin_slice(self):
-        qmg, Emg, slice_img = spinw.get_thin_slice_using_spinw(ml_slice_func, slice=Slice_00L)
+        qmg, Emg, slice_img = spinw.get_thin_slice_using_spinw(ml_slice_func, slice=Slice_00L, branches=[0])
         if plot:
             from matplotlib import pyplot as plt
             plt.pcolormesh(qmg, Emg, slice_img.T)
@@ -94,7 +94,7 @@ class TestCase(ut.TestCase):
         return
 
     def test_get_slice(self):
-        qmg, Emg, slice_img = spinw.get_slice_using_spinw(ml_slice_func, slice=Slice_00L)
+        qmg, Emg, slice_img = spinw.get_slice_using_spinw(ml_slice_func, slice=Slice_00L, branches=[0])
         if plot:
             from matplotlib import pyplot as plt
             plt.pcolormesh(qmg, Emg, slice_img.T)
