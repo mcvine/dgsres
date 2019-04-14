@@ -1,6 +1,26 @@
 
 from mcvine.workflow import singlextal as sx
 
+class arcs:
+    
+    instrument = sx.instrument(
+        name = 'ARCS',
+        detsys_radius = "3.*meter",
+        L_m2s = "13.6*meter",
+        offset_sample2beam = "-0.15*meter" # offset from sample to saved beam. don't change this unless you are sure what you are doing
+    )
+
+    pixel = sx.pixel(
+        radius = "0.5*inch",
+        height = "1.*meter/128",
+        pressure = "10*atm",
+    )
+
+    @classmethod
+    def scattering_angle_constraints(cls, theta, phi):
+        return ((theta<135.) * (theta>-28)) * (phi<26) * (phi>-27)
+
+    
 class sequoia:
     
     instrument = sx.instrument(
