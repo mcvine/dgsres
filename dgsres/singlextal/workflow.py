@@ -288,6 +288,7 @@ def _qEgrid_bigger_than(grid1, grid2):
 
 
 def get_interped_resolution_model(sl):
+    if hasattr(sl, 'resolution_model'): return sl.resolution_model
     import pickle as pkl
     qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name))
     qE2fitres = fill_in_blanks_for_fits(qE2fitres, sl)
