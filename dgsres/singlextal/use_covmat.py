@@ -32,8 +32,9 @@ class beamdivs:
         return
 
 def compute(
-        sample_yml, Ei, dynamics, psi_scan, instrument, pixel, tofwidths, beamdivs, samplethickness,
-        plot=False):
+        sample_yml, Ei, dynamics, psi_scan, instrument, pixel,
+        tofwidths, beamdivs, samplethickness,
+        plot=False, verbose=False):
     # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     # should P be the T0 chopper?
     L_PM=mcvine.units.parse(instrument.L_m2fc)/mcvine.units.meter # P chopper to M chopper distance
@@ -70,8 +71,9 @@ def compute(
     from mcvine.workflow.singlextal.coords_transform import hkl2Q
     for r in results:
         xtalori.psi = r*np.pi/180
-        print("psi=%s, Q=%s" % (r, hkl2Q(hkl, xtalori)))
-        print("hkl2Q=%r\n(Q = hkl dot hkl2Q)" % (xtalori.hkl2cartesian_mat(),))
+        if verbose:
+            print("psi=%s, Q=%s" % (r, hkl2Q(hkl, xtalori)))
+            print("hkl2Q=%r\n(Q = hkl dot hkl2Q)" % (xtalori.hkl2cartesian_mat(),))
     # these are the psi angles that the particular point of interest will be measured
     # print results
     assert len(results)
