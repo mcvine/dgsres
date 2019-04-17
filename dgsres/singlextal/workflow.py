@@ -654,3 +654,18 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
         continue
     plt.tight_layout()
     return
+
+def create_violini_model(config, sample_thickness):
+    from .violini import VioliniModel
+    from . import use_covmat
+    civ = config.instrument.violini
+    tofwidths = use_covmat.tofwidths(P=civ.tau_P, M=civ.tau_M)
+    beamdivs = use_covmat.beamdivs(theta=civ.sigma_thetai, phi=civ.sigma_phii)
+    samplethickness = sample_thickness
+    instrument = config.instrument.instrument
+    pixel = config.instrument.pixel
+    return VioliniModel(
+        instrument, pixel, tofwidths, beamdivs, 
+        config.sample_yaml, samplethickness,
+        config.Ei, config.psi_scan)
+
