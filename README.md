@@ -15,4 +15,5 @@ Resolution for direct geometry spectrometers is asymmetric and non-stationary. T
 
 
 ## Related projects
-https://github.com/sns-chops/resolution
+* [Online application](http://dgsres.mcvine.org)
+* [Experimental data and PyChop modeling](https://github.com/sns-chops/resolution)
