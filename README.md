@@ -8,3 +8,6 @@ This repository is a collection of resolution calculators for direct-geometry in
 
 ## Installation
 `$ python setup.py install`
+
+## Related projects
+https://github.com/sns-chops/resolution
