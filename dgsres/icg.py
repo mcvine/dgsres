@@ -10,8 +10,8 @@ from scipy.special import erfc
 
 def resolution(E, Ei, E0, a, b, R, sigma=5., t0=0., geom=None):
     """compute reoslution function given energy transfer axis (E)
-    and other parameters. 
-    The resolution function calculated should be centered around E0, 
+    and other parameters.
+    The resolution function calculated should be centered around E0,
     the nominal energy transfer.
 
     E: energy transfer axis
@@ -36,6 +36,9 @@ def resolution(E, Ei, E0, a, b, R, sigma=5., t0=0., geom=None):
 
 
 class ICG:
+    """
+    class for an instance of an ikeda carpenter function convoluted with a gaussian
+    """
     def __init__(self, source, sigma, geom, t0):
         self.source = source
         self.sigma = sigma
@@ -63,10 +66,10 @@ class ICG:
         sigma = self.sigma
         geom = self.geom
         return self.umin(t) + x/np.sqrt(2) * (sigma*geom.l/(geom.l2+geom.l3))
-        
+
 class Source:
     a=b=R = None
-    
+
 class Geom:
     """
     l1: moderator to fermi chopper
@@ -90,8 +93,9 @@ def test1():
     icg = ICG(source, 5., geom, 0.)
     t = np.arange(-100, 100, 1.)
     from matplotlib import pyplot as plt
-    plt.figure()
-    plt.plot(t, icg.ICG(t))
+    f1,ax1 = plt.subplots()
+    ax1.plot(t, icg.ICG(t))
+    ax1.set_xlabel('t')
     plt.show()
     return
 
@@ -105,7 +109,7 @@ def test2():
     plt.plot(E, y)
     plt.show()
     return
-    
+
 def main():
     test1()
     test2()
@@ -113,4 +117,4 @@ def main():
 
 if __name__ == '__main__': main()
 
-# End of file 
+# End of file
