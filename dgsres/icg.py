@@ -38,6 +38,11 @@ def resolution(E, Ei, E0, a, b, R, sigma=5., t0=0., geom=None):
 class ICG:
     """
     class for an instance of an ikeda carpenter function convoluted with a gaussian
+    Following Loong, Carpenter and Ikeda
+    geom is a n instance of a geomtry class as defined below
+    source is an instance of a source class as defined below
+    t0 is the time of the neutrons at the chopper
+    sigma is a resolution width corresponding to the broading effects independent of the moderator
     """
     def __init__(self, source, sigma, geom, t0):
         self.source = source
