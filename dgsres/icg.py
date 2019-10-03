@@ -38,6 +38,11 @@ def resolution(E, Ei, E0, a, b, R, sigma=5., t0=0., geom=None):
 class ICG:
     """
     class for an instance of an ikeda carpenter function convoluted with a gaussian
+    Following Loong, Carpenter and Ikeda
+    geom is a n instance of a geomtry class as defined below
+    source is an instance of a source class as defined below
+    t0 is the time of the neutrons at the chopper
+    sigma is a resolution width corresponding to the broading effects independent of the moderator
     """
     def __init__(self, source, sigma, geom, t0):
         self.source = source
@@ -68,7 +73,12 @@ class ICG:
         return self.umin(t) + x/np.sqrt(2) * (sigma*geom.l/(geom.l2+geom.l3))
 
 class Source:
-    a=b=R = None
+    """
+    """
+    def __init__ (self,a=None,b=None,R=None):
+        self.a = a
+        self.b = b
+        self.R = R
 
 class Geom:
     """
@@ -85,10 +95,7 @@ class Geom:
 
 
 def test1():
-    class source:
-        a = 0.45
-        b = 0.04
-        R = .65
+    source = Source(a = 0.45,b = 0.04,R = .65)
     geom = Geom(l1=11.6, l2=2.0, l3=3.)
     icg = ICG(source, 5., geom, 0.)
     t = np.arange(-100, 100, 1.)
@@ -96,7 +103,7 @@ def test1():
     f1,ax1 = plt.subplots()
     ax1.plot(t, icg.ICG(t))
     ax1.set_xlabel('t')
-    plt.show()
+    f1.show()
     return
 
 def test2():
