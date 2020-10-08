@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, numpy as np, unittest as ut
+import os, numpy as np, unittest as ut, pytest
 from dgsres.singlextal import spinw, convolve2d as cvv2
 from mcvine.workflow import singlextal as sx
 plot = False
@@ -17,6 +17,12 @@ def ml_slice_func(hkl_start, hkl_end, Nq_disp):
     I = np.ones(Nq_disp)
     return dict(omega=np.array([E,E]), swInt=np.array([I,I]))
 
+def hasMatlab():
+    try:
+        import matlab
+    except ImportError:
+        return False
+    return True
 
 # slice
 class Slice_00L:
@@ -63,6 +69,7 @@ class convolution:
 Slice_00L.convolution = convolution
 
 
+@pytest.mark.skipif(not hasMatlab(), reason='requires matlab python extension')
 class TestCase(ut.TestCase):
     
     def test_get_dispersions_along_slice(self):

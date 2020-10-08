@@ -7,7 +7,6 @@
 
 
 import os, numpy as np, tqdm
-import matlab.engine, matlab
 from . import disp2sqw as d2s
 
 
@@ -39,6 +38,7 @@ get_slice_using_spinw = _backward_compatible_func(get_slice, 'get_slice_using_sp
 
 
 def wrap_spinw_disp_func(f):
+    import matlab.engine, matlab
     def _(start, end, Nq_disp):
         sp = f(matlab.double(list(start)), matlab.double(list(end)), Nq_disp)
         return sp['omega'], sp['swInt']

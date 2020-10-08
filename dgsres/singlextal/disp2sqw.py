@@ -6,7 +6,7 @@
 # The methods here require the "convolver" is already created by calling workflow.create_convolution_calculator(slice)
 
 import os, numpy as np, tqdm
-import matlab.engine, matlab
+# import matlab.engine, matlab
 
 def get_dispersions_along_slice(disp_calc, slice1, Nq=500, branches=slice(None, None)):
     """obtain dispersion at the given slice between convolver expanded grid
