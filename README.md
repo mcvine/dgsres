@@ -1,4 +1,5 @@
 <!-- [![Build Status](http://35.168.96.122:8080/buildStatus/icon?job=dgsres)](http://35.168.96.122:8080/job/dgsres/) -->
+[![Build Status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoibUZKS0FlY080d1I3ZVFyM2ZMVm8reFJGemNYcTFBOE9mVG1rWkVVcnVYOStmaHNIOGUvb1piL2FTT2NWbGJVRXlOVkFKK2N3OXQ2ZzlGOXZTL0MrZ3pRPSIsIml2UGFyYW1ldGVyU3BlYyI6Iit6YVNCQXZHL3lUUVUzdXkiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)](https://console.aws.amazon.com/codesuite/codebuild/668650830132/projects/mcvine-dgsres-py2)
 [![DOI](https://zenodo.org/badge/97215709.svg)](https://zenodo.org/badge/latestdoi/97215709)
 
 # dgsres
