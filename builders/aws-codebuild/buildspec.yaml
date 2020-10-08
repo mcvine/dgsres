@@ -19,7 +19,7 @@ phases:
       - export JOB_NAME=dgsres
       - export BUILD_NUMBER=$CODEBUILD_BUILD_NUMBER
       - ./builders/aws-codebuild/install-conda.sh
-      - ./builders/aws-codebuild/install-mcvine.sh
+      - ./builders/aws-codebuild/install-deps.sh
   pre_build:
     commands:
       - echo PreBuild started on `date`
