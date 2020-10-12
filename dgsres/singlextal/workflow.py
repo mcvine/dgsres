@@ -216,7 +216,7 @@ def fit_all_in_one(config):
             imodel = get_interped_resolution_model(sl)
             qs = (qaxis.ticks() + qaxis.step/2.)[:-1]
             Es = (Eaxis.ticks() + Eaxis.step/2.)[:-1]
-            dqgrid, dEgrid = qE2fitter.values()[0].qEgrids
+            dqgrid, dEgrid = list(qE2fitter.values())[0].qEgrids
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
@@ -357,7 +357,7 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
     out = sp.check_output(cmd, shell=True, cwd=outdir)
     end = time.time()
     duration = end - start
-    print "* simulation took %s seconds" % duration
+    print("* simulation took %s seconds" % duration)
     return out
 
 
@@ -467,7 +467,7 @@ def fit_all_grid_points(slice, config, use_cache=False):
     nofit = []
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
-            print q, E
+            print(q, E)
             try:
                 fitter = fit(q, E, slice, config, use_cache=use_cache)
                 xp_center = fitter.fit_result.best_values['xp_center']
@@ -502,7 +502,7 @@ def fit_all_grid_points(slice, config, use_cache=False):
         for iE, E1 in enumerate(Eticks):
             if not outliers[iq, iE]: continue
             this = q1, E1
-            print "* working on outlier %s" % (this,)
+            print("* working on outlier %s" % (this,))
             old_alpha = alpha_image[iq, iE]
             median_alpha = median[iq, iE]
             alpha_bounds = (median_alpha-np.pi/10, median_alpha+np.pi/10)
@@ -522,14 +522,14 @@ def fit_all_grid_points(slice, config, use_cache=False):
             else:
                 fitter.fit_result = good_results[0]
             qE2fitter[this] = fitter
-            print "   old alpha: %s. median alpha: %s. new alpha: %s" % (
-                old_alpha, median_alpha, fitter.fit_result.best_values['alpha'])
+            print("   old alpha: %s. median alpha: %s. new alpha: %s" % (
+                old_alpha, median_alpha, fitter.fit_result.best_values['alpha']))
         continue
     #
     # qEranges is an import parameter that need to be rememberd
-    fitter1 = qE2fitter.values()[0]
+    fitter1 = list(qE2fitter.values())[0]
     slice.res_2d_grid.qEranges = fit_ellipsoid.qEgrid2range(*fitter1.qEgrids)
-    for fitter in qE2fitter.values()[1:]:
+    for fitter in list(qE2fitter.values())[1:]:
         assert np.allclose(slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids)), \
             "qEranges mistmatch: %s vs %s" % (slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids))
     return qE2fitter, nofit
@@ -596,7 +596,7 @@ def save_fits_as_pickle(qE2fitter, path):
     return
 
 def format_parameter_table(qE2fitres):
-    keys = qE2fitres.values()[0].best_values.keys()
+    keys = list(qE2fitres.values())[0].best_values.keys()
     lines = []
     line = "%6s%6s" % ('q','E')
     for k in keys: line += '%8s' % k[:8]
@@ -619,8 +619,8 @@ def print_parameter_table(qE2fitres):
 
 def create_interp_model(qE2fitres, slice):
     # Get parameters as lists, ready for interpolation
-    keys = qE2fitres.values()[0].best_values.keys()
-    qEs_all = qE2fitres.keys()
+    keys = list(qE2fitres.values())[0].best_values.keys()
+    qEs_all = list(qE2fitres.keys())
     qE_points = []
     param_values = dict()
     for k in keys:

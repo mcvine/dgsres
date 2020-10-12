@@ -1,5 +1,5 @@
 import numpy as np, histogram.hdf as hh, histogram as H
-import os
+import os, sys
 
 class Sim:
     
@@ -35,7 +35,11 @@ class Sim:
         simdir = os.path.join(workdir, 'res-sim')
         if not os.path.exists(simdir):
             # init
-            os.system(u'mcvine workflow powder --instrument=%s --sample=V --workdir=%s' % (instrument, simdir))
+            if sys.version_info < (3,0):
+                cmd = u'mcvine workflow powder --instrument=%s --sample=V --workdir=%s' % (instrument, simdir)
+            else:
+                cmd = 'mcvine workflow powder --instrument=%s --sample=V --workdir=%s' % (instrument, simdir)
+            os.system(cmd)
             os.chdir(simdir)
             os.system("rm -rf beam")
             os.system('ln -s %s beam' % beamdir)
@@ -119,7 +123,7 @@ def list_results(outdir, kind):
     for fn in files:
         b = os.path.basename(fn)
         _, Q, E = b.rstrip('.h5').split('-')
-        Q, E = map(float, (Q[2:], E[2:]))
+        Q, E = list(map(float, (Q[2:], E[2:])))
         l.append((Q,E))
         continue
     return l

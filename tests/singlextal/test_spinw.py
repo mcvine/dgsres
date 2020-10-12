@@ -83,7 +83,7 @@ class TestCase(ut.TestCase):
         # np.save(os.path.join(expected_res_dir, "get_dispersions_along_slice.npy"), (spinw_qs, omega[0], swInt[0]))
         # checking
         expected = np.load(os.path.join(expected_res_dir, "get_dispersions_along_slice.npy"))
-        self.assert_(np.allclose(expected, (spinw_qs, omega[0], swInt[0])))
+        self.assertTrue(np.allclose(expected, (spinw_qs, omega[0], swInt[0])))
         return
     
     def test_get_thin_slice(self):
@@ -97,7 +97,7 @@ class TestCase(ut.TestCase):
         #     np.save(os.path.join(expected_res_dir, "get_thin_slice.npy"), (qmg, Emg, slice_img.T))
         # checking
         expected = np.load(os.path.join(expected_res_dir, "get_thin_slice.npy"))
-        self.assert_(np.allclose(expected, (qmg, Emg, slice_img.T)))
+        self.assertTrue(np.allclose(expected, (qmg, Emg, slice_img.T)))
         return
 
     def test_get_slice(self):
@@ -111,7 +111,7 @@ class TestCase(ut.TestCase):
         #     np.save(os.path.join(expected_res_dir, "get_slice.npy"), (qmg, Emg, slice_img.T))
         # checking
         expected = np.load(os.path.join(expected_res_dir, "get_slice.npy"))
-        self.assert_(np.allclose(expected, (qmg, Emg, slice_img.T)))
+        self.assertTrue(np.allclose(expected, (qmg, Emg, slice_img.T)))
         return
 
 

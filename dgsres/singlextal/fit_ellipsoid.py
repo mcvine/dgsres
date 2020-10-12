@@ -72,7 +72,7 @@ class InterpModel:
     def getModel(self, q, E):
         from scipy.interpolate import griddata
         kwds = dict()
-        keys = self.param_values.keys()
+        keys = list(self.param_values.keys())
         for k in keys:
             vals = self.param_values[k]
             kwds[k] = griddata(self.qE_points, vals, [[q, E]]) [0]
@@ -124,28 +124,28 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
     ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
     z = I.copy().flatten()/I.max()
     model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha_bounds=alpha_bounds)
-    print "Established model:", model
+    print("Established model:", model)
     model.print_param_hints(colwidth=12)
-    print "Start fitting..."
+    print("Start fitting...")
     results = []
     for i in range(rounds):
-        print " -- Fitting round %s" % i
+        print(" -- Fitting round %s" % i)
         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
         # print result.fit_report()
         results.append(result)
-        print "    chisq=%s" % result.chisqr
+        print("    chisq=%s" % result.chisqr)
         # print
         
     # alpha may be 90 degrees off
-    print "Start fitting with alpha_guess+90degree..."
+    print("Start fitting with alpha_guess+90degree...")
     alpha, beta = guess_results[:2]
     model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta, alpha_bounds=alpha_bounds)
     for i in range(rounds):
-        print " -- Fitting round %s" % i
+        print(" -- Fitting round %s" % i)
         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
         # print result.fit_report()
         results.append(result)
-        print "    chisq=%s" % result.chisqr
+        print("    chisq=%s" % result.chisqr)
         # print
     results.sort(key=lambda x: x.chisqr)
     if return_all_results:
@@ -258,7 +258,7 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, a
         beta = getBeta(ugrid, vgrid, I)
     beta_bounds = beta_bounds or (0, np.pi)
     beta = adjust_to_within_bounds(beta, beta_bounds, period=np.pi)
-    print "Guessed alpha,beta=", np.rad2deg([alpha, beta])
+    print("Guessed alpha,beta=", np.rad2deg([alpha, beta]))
     # initial guess for x and y profiles
     # x is gaussian, y is asymmetric
     xpg, yg = transform_grid(ugrid, vgrid, alpha, beta)
@@ -281,8 +281,8 @@ def fitguess(qgrid, Egrid, I, gaussian2d_threshold=0.5, alpha=None, beta=None, a
     # guess of gaussian width and center
     xp_center, xp_sigma = weighted_avg_and_std(xp_bc, Ixp)
     y_center, y_sigma = weighted_avg_and_std(y_bc, Iy)
-    print "Guessed x' center, sigma: ", xp_center, xp_sigma
-    print "Guessed y center, sigma: ", y_center, y_sigma
+    print("Guessed x' center, sigma: ", xp_center, xp_sigma)
+    print("Guessed y center, sigma: ", y_center, y_sigma)
     return alpha, beta, xp_bc, Ixp, y_bc, Iy, xp_center, xp_sigma, y_center, y_sigma
 
 def adjust_to_within_bounds(x, bounds, period):

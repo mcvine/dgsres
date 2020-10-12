@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from matplotlib import pyplot as plt
 import numpy as np, histogram.hdf as hh, histogram as H
 from scipy.interpolate import interp1d
@@ -10,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFil
 from PyQt5.QtGui import QIcon
 import warnings
 import h5py
-from Ikeda_carpenter import Count as Count
+from .Ikeda_carpenter import Count as Count
 
 
 
@@ -171,7 +172,7 @@ class ModelFitting():
         # a_cal = 1. / (a0 + (self.lamda(self.Ei) * a1))
 
         no_Et_Files=len(mcvine)
-        for i in xrange(no_Et_Files):
+        for i in range(no_Et_Files):
             mcvineSol=mcvine[i] #load the resolution function from the directory
 
             print (mcvineSol)
@@ -237,7 +238,7 @@ class ModelFitting():
 
 
 
-            print a_cal, b_cal, R_cal
+            print(a_cal, b_cal, R_cal)
 
             # if self.Ei == 130:
             #         mod.set_param_hint('R', value=R_cal, min=0.0, max=1.0 )
@@ -370,7 +371,7 @@ class ModelFitting():
         time=np.zeros((len(Et_peak), len(Et_range_Haxis)))
         RF = np.zeros((len(Et_peak), len(Et_range_Haxis)))
 
-        for i, j in zip (Et_peak, xrange(len(Et_peak))):
+        for i, j in zip (Et_peak, range(len(Et_peak))):
             tcheck = self.t(self.l3, self.Ei, i, Et_range_Haxis)
             time[j,:]=tcheck
             RF[j, :] = self.Count(tcheck, R(i), a(i), b(i), s(i), t0(i), 1)
