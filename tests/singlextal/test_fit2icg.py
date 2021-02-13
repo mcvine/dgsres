@@ -16,10 +16,10 @@ def test():
     fitter = fit2icg.Fit2ICG(datadir, cncs_geom, qaxis=(-0.3, 0.3, 0.01), Eaxis=(-2, 1, 0.05), Ei=Ei, E=E0)
     fitter.load_mcvine_psf_qE()
     fitted_params, res_x, res_y, yfit, E_profile = fitter.fit_E_profile(a=0.35, b=0.13, R=.8, sigma=2, t0=15)
-    print fitted_params
+    print(fitted_params)
     popt, res_x, res_y, yfit, q_profile = fitter.fit_q_profile(sigma=0.1)
     fitted_parameters, qgrid, Egrid, res_z, zfit, qE_profile = fitter.fit_qE_profile(dq_over_dE=0.02)
-    print fitted_parameters
+    print(fitted_parameters)
     return
 
 def main():

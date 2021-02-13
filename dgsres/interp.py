@@ -23,7 +23,7 @@ class InterpedParameters:
         """
         self.c2p = c2p = coordinates2parameters
 
-        self.coordinates = keys = c2p.keys()
+        self.coordinates = keys = list(c2p.keys())
         k0 = keys[0]
         assert len(k0) == 2, "Only support 2D"
 
@@ -33,7 +33,7 @@ class InterpedParameters:
         #
         v0 = c2p[k0]
         interps = dict()
-        self.param_names = v0.keys()
+        self.param_names = list(v0.keys())
         import scipy.interpolate as si
         for name in self.param_names:
             interps[name] = si.interp2d(xs, ys, self.build_z(name), **interp_options)

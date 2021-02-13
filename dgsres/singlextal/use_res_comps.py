@@ -329,7 +329,7 @@ def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
             dEs_all = np.concatenate((dEs_all, dEs))
             probs_all = np.concatenate((probs_all, probs))
             dhkls_all = np.concatenate((dhkls_all, dhkls))
-        print
+        print()
         start = end
         continue
     # reverse x and E

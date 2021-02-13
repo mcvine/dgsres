@@ -70,8 +70,8 @@ def compute(
     from mcvine.workflow.singlextal.coords_transform import hkl2Q
     for r in results:
         xtalori.psi = r*np.pi/180
-        print "psi=%s, Q=%s" % (r, hkl2Q(hkl, xtalori))
-        print "hkl2Q=%r\n(Q = hkl dot hkl2Q)" % (xtalori.hkl2cartesian_mat(),)
+        print("psi=%s, Q=%s" % (r, hkl2Q(hkl, xtalori)))
+        print("hkl2Q=%r\n(Q = hkl dot hkl2Q)" % (xtalori.hkl2cartesian_mat(),))
     # these are the psi angles that the particular point of interest will be measured
     # print results
     assert len(results)

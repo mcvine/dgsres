@@ -1,9 +1,10 @@
 # fit mcvine-simulated point spread function to an empirical form
 
+from __future__ import absolute_import
 import os, numpy as np
 import histogram.hdf as hh, histogram as H
 import scipy.optimize as sopt
-from PSF_Affine_Model import PSF_Affine_Model, gaus
+from .PSF_Affine_Model import PSF_Affine_Model, gaus
 
 
 class Fit(object):
