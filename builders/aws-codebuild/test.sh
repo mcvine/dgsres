@@ -17,4 +17,9 @@ python -c "import mcvine"
 mcvine
 
 python setup.py install
-py.test 
+
+export OMPI_ALLOW_RUN_AS_ROOT=1
+export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+echo "localhost slots=8" > $(dirname $(dirname $(which python)))/etc/openmpi-default-hostfile
+
+py.test
