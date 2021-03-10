@@ -9,3 +9,4 @@ conda list mcvine
 conda list mcvine-core
 THIS_SCRIPT_DIR=`dirname $0`
 python $THIS_SCRIPT_DIR/init_mantid_user_config.py
+python -c "from mantid import simpleapi"
