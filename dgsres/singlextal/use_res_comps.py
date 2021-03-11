@@ -38,7 +38,8 @@ Inputs:
 * pixel
 """
 
-import os, sys, numpy as np, mcvine
+import os, sys, numpy as np, cloudpickle as pkl, tempfile as tpf
+import mcvine
 from mcni.utils import conversion as Conv
 
 
@@ -83,8 +84,7 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     log.write( "* hkl2Qmat=%s\n" % (hkl2Qmat,) )
     kfv, Ef = computeKf(Ei, E, Q, log)
     log.write( "* Ef=%s\n" % (Ef,))
-    pixel_position = computePixelPosition(kfv, instrument, log)
-    log.write( "* pixel_position=%s\n" % (pixel_position,) )
+    pixel_position, pixel_orientation = computePixelPositionOrientation(kfv, instrument, log)
     # at this point the coordinates have convention of z vertical up
     # ** coordinate system for calculated position: z is vertical **
     # this pixel_position is in the instrument coordinate system.
@@ -118,15 +118,24 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
     from mcvine.workflow.singlextal.scaffolding import createSampleAssembly
     sampledir = os.path.abspath(os.path.join(outdir, 'sample'))
     createSampleAssembly(sampledir, sample, add_elastic_line=False)
+    # save instrument object
+    ofstream = tpf.NamedTemporaryFile(
+        dir=outdir, prefix='instrument', suffix='.pkl', delete=False)
+    pkl.dump(instrument, ofstream)
+    instr_fn = os.path.abspath(ofstream.name)
+    ofstream.close()
+    # save pixel object
+    pixel.position = pixel_position
+    pixel.orientation = pixel_orientation
+    ofstream = tpf.NamedTemporaryFile(
+        dir=outdir, prefix='pixel', suffix='.pkl', delete=False)
+    pkl.dump(pixel, ofstream)
+    pixel_fn = os.path.abspath(ofstream.name)
+    ofstream.close()
     # create sim script
     params = dict(
         beam_neutrons_path = os.path.join(beam, 'out', 'neutrons'),
-        instr_name =  instrument.name,
-        instr_dr = instrument.detsys_radius,
-        instr_L_m2s = instrument.L_m2s,
-        instr_s2b = instrument.offset_sample2beam,
-        p_r = pixel.radius, p_h=pixel.height, p_p = pixel.pressure,
-        pixel_position = pixel_position,
+        instr_fn = instr_fn, pixel_fn = pixel_fn,
         samplexmlpath = os.path.join(sampledir, "sampleassembly.xml"),
         psi = psi,
         hkl2Q = hkl2Qmat,
@@ -134,22 +143,22 @@ def setup(outdir, sampleyml, beam, E, hkl, hkl_projection, psi_axis, instrument,
         Q = Q,
         E = E,
         hkl_projection = hkl_projection,
-        )    
+        )
     script = sim_script_template % params
     open(os.path.join(outdir, 'run.py'), 'wt').write(script)
     return
 sim_script_template = """#!/usr/bin/env python
+import cloudpickle as pkl
 import mcvine.cli
 from numpy import array
 from dgsres.singlextal import use_res_comps as urc
 # parameters
 beam_neutrons_path = %(beam_neutrons_path)r
-instrument = urc.instrument(%(instr_name)r, %(instr_dr)r, %(instr_L_m2s)r, %(instr_s2b)r)
+instrument = pkl.load(open(%(instr_fn)r, 'rb'))
 samplexmlpath = %(samplexmlpath)r
 psi = %(psi)r
 hkl2Q = %(hkl2Q)r
-pp = %(pixel_position)r
-pixel = urc.pixel(%(p_r)r, %(p_h)r, %(p_p)r, position=(pp[1], pp[2], pp[0]))
+pixel = pkl.load(open(%(pixel_fn)r, 'rb'))
 t_m2p = %(t_m2p)r
 Q = %(Q)r
 E = %(E)r
@@ -184,15 +193,27 @@ def computeKf(Ei, E, Q, log):
     log.write( "  Ei=%s, Ef=%s\n" % (Ei,Ef) )
     return kfv, Ef
 
-def computePixelPosition(kfv, instrument, log):
+def computePixelPositionOrientation(kfv, instrument, log):
     # ** compute nominal TOF at detector pixel **
     # where is detector pixel?
-    # cylinder radius = 3meter. 
+    # kfv is in instrument scientist coordinate system
     R = mcvine.units.parse(instrument.detsys_radius)/mcvine.units.meter
-    t_sample2pixel = R/(kfv[0]**2 + kfv[1]**2)**.5
+    kf = np.linalg.norm(kfv)
+    if instrument.detsys_shape == 'cylinder':
+        t_sample2pixel = R/(kfv[0]**2 + kfv[1]**2)**.5
+        rotmat = np.eye(3)
+    elif instrument.detsys_shape == 'sphere':
+        t_sample2pixel = R/kf
+        cos_theta = kfv[2]/kf; theta = np.arccos(cos_theta)
+        phi = np.arctan2(kfv[1], kfv[0])
+        rotmat = instrument.pixel_orientation_func(theta, phi)
+    else:
+        raise NotImplementedError("detector system shape {}".format(instrument.detsys_shape))
     pixel_pos = kfv*t_sample2pixel
-    log.write( "* pixel positon=%s\n" % (pixel_pos,))
-    return pixel_pos
+    from mcni.neutron_coordinates_transformers.mcstasRotations import toAngles
+    pixel_ori = toAngles(rotmat, unit='degree')
+    log.write( "* pixel positon=%s orientation=%s\n" % (pixel_pos, pixel_ori))
+    return pixel_pos, pixel_ori
 
 def calcQ(sampleyml, Ei, E, hkl, psi_axis, Npsisegments=10):
     from mcvine.workflow.singlextal.io import loadXtalOriFromSampleYml
@@ -234,26 +255,30 @@ def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
     source = NeutronFromStorage('source', path=beam_neutrons_path)
     from mccomponents.sample import samplecomponent
     sample = samplecomponent( 'sample', samplexmlpath)
+    # dummy component to save the state of scattered neutrons
+    from mcni.components.Dummy import Dummy
+    sample_location = Dummy('sample_location')
+    # det pixel
     from mccomponents.components.DGSSXResPixel import DGSSXResPixel
     pressure = mcvine.units.parse(pixel.pressure)/mcvine.units.parse("kg/m/s/s")
     r = mcvine.units.parse(pixel.radius)/mcvine.units.meter
     h = mcvine.units.parse(pixel.height)/mcvine.units.meter
     pixel_comp = DGSSXResPixel(
-        "pixel", 
+        "pixel",
         pressure=pressure, tof=t_m2p,
         radius=r, height=h)
     # build instrument simulation chain
     import mcni
-    sim_chain = mcni.instrument( [source, sample, pixel_comp] )
+    sim_chain = mcni.instrument( [source, sample, sample_location, pixel_comp] )
     # put components into place
     geometer = mcni.geometer()
     z_beam = mcvine.units.parse(instrument.offset_sample2beam)/mcvine.units.meter
+    # z along beam
     geometer.register( source, (0,0,z_beam), (0,0,0) )
     geometer.register( sample, (0,0,0), (0,psi*180/np.pi,0) )
-    #  8.69538059e-01,   2.87121987e+00,  -1.66786532e-16
-    # (2.8712198737660715, -1.6678653212531173e-16, 0.86953805925373207)
-    geometer.register( pixel_comp, pixel.position, (0,0,0) )
-    # 
+    geometer.register( sample_location, (0,0,0), (0,0,0) )
+    geometer.register( pixel_comp, pixel.position, pixel.orientation )
+    #
     Q2hkl = np.linalg.inv(hkl2Q)
     # lengh of hkl_projection squared
     hkl_proj_len2 = np.dot(hkl_projection, hkl_projection)
@@ -277,14 +302,16 @@ def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
         before_dummy_start, after_dummy_start, \
             before_incident, after_incident, \
             before_scattered, after_scattered, \
+            at_sample_location, at_sample_location2, \
             before_detected, after_detected, \
             before_dummy_end, after_dummy_end = tracer._store
         incident = after_incident
-        # has to be this. pixel and beam has no relative rotation. 
+        # has to be `at_sample_location` because both sample_location and
+        # beam have no relative rotation. 
         # should not used after_scattered.
-        # it is in the sample's coordinate system,
-        # which is rotated by angle psi.
-        scattered = before_detected 
+        # it is in the sample's coordinate system, which is rotated by angle psi.
+        # should not use before_detected. It could be rotated in spherical case
+        scattered = at_sample_location
         detected = after_detected
         del (before_dummy_start, after_dummy_start,
              before_incident, after_incident,
