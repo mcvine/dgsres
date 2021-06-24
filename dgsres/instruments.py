@@ -84,3 +84,22 @@ class chess:
     @classmethod
     def scattering_angle_constraints(cls, theta, phi):
         return ((theta<180.) * (theta>-180)) * (phi<90) * (phi>-90)
+
+
+class amateras:
+    instrument = sx.instrument(
+        name = 'AMATERAS',
+        detsys_radius = "4.0*meter",
+        L_m2s = "30.0*meter",
+        offset_sample2beam = "-0.15*meter" # offset from sample to saved beam. don't change this unless you are sure what you are doing
+    )
+
+    pixel = sx.pixel(
+        radius = "0.5*inch",
+        height = "0.02425*meter",
+        pressure = "10.0*atm",
+    )
+
+    @classmethod
+    def scattering_angle_constraints(cls, theta, phi):
+        return ((theta<140.) * (theta>-40)) * (phi<20.5) * (phi>-20.5)
