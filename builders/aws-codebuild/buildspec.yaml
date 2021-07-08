@@ -10,6 +10,7 @@ phases:
       - mount
       - # apt-get update && apt-get install -y procps freeglut3-dev libglu1-mesa unzip
       - yum install -y mesa-libGLU-devel unzip time
+      - yum install -y texlive-*
       - pwd
       - ls -tl ./
       - which git

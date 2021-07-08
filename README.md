@@ -12,6 +12,17 @@ Resolution for direct geometry spectrometers is asymmetric and non-stationary. T
 ![image](https://user-images.githubusercontent.com/1796155/59158473-a8947e00-8a88-11e9-9e4c-0158ee5e0443.png)
 
 
+## Dependencies
+
+* tqdm
+* latex (texlive in ubuntu)
+* pylatex
+* lmfit
+* cloudpickle
+* scikit-image 0.15
+* mcpl (optional. install use pip)
+* dill (obsolete. now use cloudpickle)
+
 ## Installation
 `$ python setup.py install`
 

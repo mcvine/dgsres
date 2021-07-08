@@ -110,6 +110,7 @@ def simulate_all_in_one(config):
     A PDF includes basic info, a plot of dynamical range, and a plot of simulated resolution functions
     on a grid.
     """
+    outputs, failed = [], []
     import pylatex
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
@@ -142,15 +143,17 @@ def simulate_all_in_one(config):
 
         # simulate
         with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
-            outputs, failed = simulate_all_grid_points(
+            outputs1, failed1 = simulate_all_grid_points(
                 slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=False)
+            outputs.append(outputs1)
+            failed.append(failed1)
 
-            if failed:
+            if failed1:
                 # this seems unecessary as what is missing is clear in the plot
                 """
                 doc.append("Failed to calculate resolution functions for the following (Q,E) pairs:")
                 with doc.create(pylatex.Itemize()) as itemize:
-                    for f in failed:
+                    for f in failed1:
                         itemize.add_item(str(f))
                 """
                 pass
@@ -164,19 +167,20 @@ def simulate_all_in_one(config):
         # save pdf
         doc.generate_pdf(clean_tex=False)
         continue
-    return
+    return outputs, failed
 
-def fit_all_in_one(config):
+def fit_all_in_one(config, verbose=False):
     """fit all grid points, and compose PDF reports
     
     A PDF includes fitted resolution function plot, a table of fitting parameters,
     a grid plot of interpolated resolution functions,
     and plots of comparison between the simulated and fitted resolution functions.
     """
-    import pylatex, dill
+    import pylatex, cloudpickle as pkl
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
     width = r'1\textwidth'
+    nofits = []
     for sl in config.slices:
         doc = _wph.initReportDoc("%s-fit-report" % sl.name) # report document
         qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
@@ -186,12 +190,18 @@ def fit_all_in_one(config):
         # fit
         with doc.create(pylatex.Section('Fit resolution functions on grid')):
             # path to saved result
-            path = '%s-fit_all_grid_points.dill' % sl.name
+            path = '%s-fit_all_grid_points.pkl' % sl.name
             if os.path.exists(path):
-                qE2fitter, nofit = dill.load(open(path))
+                qE2fitter, nofit = pkl.load(open(path, 'rb'))
             else:
-                qE2fitter, nofit = fit_all_grid_points(sl, config, use_cache=True)
-                dill.dump((qE2fitter, nofit), open(path, 'w'), recurse=True)
+                dillpath = '%s-fit_all_grid_points.dill' % sl.name
+                if os.path.exists(dillpath):
+                    import dill
+                    qE2fitter, nofit = dill.load(open(dillpath))
+                else:
+                    qE2fitter, nofit = fit_all_grid_points(sl, config, use_cache=True, verbose=verbose)
+                pkl.dump((qE2fitter, nofit), open(path, 'wb'))
+            nofits.append(nofit)
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
@@ -204,7 +214,7 @@ def fit_all_in_one(config):
         pklfile = '%s-fit_results.pkl' % sl.name
         save_fits_as_pickle(qE2fitter, pklfile)
         import pickle as pkl
-        qE2fitres = pkl.load(open(pklfile))
+        qE2fitres = pkl.load(open(pklfile, 'rb'))
         
         # parameters
         with doc.create(pylatex.Subsection('Fitted parameters')):
@@ -240,7 +250,7 @@ def fit_all_in_one(config):
         # save PDF
         doc.generate_pdf(clean_tex=False)
         continue
-    return
+    return nofits
 
 def create_convolution_calculator(slice, resolution_range=None):
     """Create a "convoler", instance of .convolve2d.Convolver from slice convolution specs    
@@ -290,7 +300,7 @@ def _qEgrid_bigger_than(grid1, grid2):
 def get_interped_resolution_model(sl):
     if hasattr(sl, 'resolution_model'): return sl.resolution_model
     import pickle as pkl
-    qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name))
+    qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name, 'rb'))
     qE2fitres = fill_in_blanks_for_fits(qE2fitres, sl)
     return create_interp_model(qE2fitres, sl)
 
@@ -362,7 +372,7 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
 
 
 def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
-    failed = []; outputs = {}
+    failed = {}; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             simdir = config.simdir(q,E, slice)
@@ -370,7 +380,8 @@ def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
             except:
-                failed.append( (q,E) )
+                import traceback as tb
+                failed[(q,E)] = tb.format_exc()
         continue
     return outputs, failed
 
@@ -411,10 +422,15 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
 
 def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
     if use_cache:
-        import dill
-        path = '%s-q_%.3f-E_%.3f-fitter.dill' % (slice.name, q, E)
+        import cloudpickle as pkl
+        path = '%s-q_%.3f-E_%.3f-fitter.pkl' % (slice.name, q, E)
         if os.path.exists(path):
-            return dill.load(open(path))
+            return pkl.load(open(path, 'rb'))
+        else:
+            dillpath = '%s-q_%.3f-E_%.3f-fitter.dill' % (slice.name, q, E)
+            if os.path.exists(dillpath):
+                import dill
+                return dill.load(open(dillpath))
     from dgsres.singlextal import fit_ellipsoid
     datadir = config.simdir(q,E,slice)
     qaxis = slice.res_2d_grid.qaxis
@@ -430,7 +446,7 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
     if extra_fitting_params: fitting_params.update(extra_fitting_params)
     fitter.fit_result = fitter.fit(**fitting_params)
     if use_cache:
-        dill.dump(fitter, open(path, 'w'))
+        pkl.dump(fitter, open(path, 'wb'))
     return fitter
 
 
@@ -462,7 +478,7 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     
     return
 
-def fit_all_grid_points(slice, config, use_cache=False):
+def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
     qE2fitter = dict()
     nofit = []
     for q in slice.grid.qaxis.ticks():
@@ -474,8 +490,9 @@ def fit_all_grid_points(slice, config, use_cache=False):
                 if np.abs(xp_center)>0.1: continue
                 qE2fitter[(q,E)] = fitter
             except:
-                # import traceback as tb
-                # tb.print_exc()
+                if verbose:
+                    import traceback as tb
+                    tb.print_exc()
                 nofit.append((q,E))
         continue
     # correct alpha
@@ -517,8 +534,14 @@ def fit_all_grid_points(slice, config, use_cache=False):
             if not good_results:
                 chisqs = [r.chisqr for r in results]
                 median_chisq = np.median(chisqs)
-                candidates = [(np.abs(r.best_values['alpha']-median_alpha), r) for r in results if r.chisqr < median_chisq+1]
-                fitter.fit_result = sorted(candidates)[0][1]
+                fr = None; max1 = None
+                for r in results:
+                    if r.chisqr >= median_chisq+1: continue
+                    tocompare = np.abs(r.best_values['alpha']-median_alpha), r.chisqr
+                    if max1 is None or max1<tocompare:
+                        max1, fr = tocompare, r
+                    continue
+                fitter.fit_result = fr
             else:
                 fitter.fit_result = good_results[0]
             qE2fitter[this] = fitter
@@ -592,7 +615,7 @@ def save_fits_as_pickle(qE2fitter, path):
         continue
 
     import pickle as pkl
-    pkl.dump(qE2fitres_tosave, open(path, 'w'))
+    pkl.dump(qE2fitres_tosave, open(path, 'wb'))
     return
 
 def format_parameter_table(qE2fitres):
