@@ -1,0 +1,15 @@
+name: YbCl3
+chemical_formula: YbCl3
+lattice: 
+ constants: 7.124, 11.726, 6.423, 90, 110.55, 90
+ basis_vectors:
+  - 7.124, 0, 0
+  - 0, 11.726, 0
+  - -2.255, 0, 6.014
+excitations:
+ - type: DGSresolution
+orientation:
+ u: 4.87773, -8.32754, -0.55893
+ v: 4.47336, 8.07773, 0.76206
+shape: block width="3*mm" height="2.5*cm" thickness="3*mm"
+temperature: 0.3*K
