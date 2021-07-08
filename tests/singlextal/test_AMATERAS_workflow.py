@@ -31,11 +31,12 @@ def test():
     for item, tb in f0.items():
         print(item)
         print(tb)
+    assert len(failed[0]) == 12 and len(outputs[0]) == 8
     nofits = workflow.fit_all_in_one(config)
     # print(outputs)
     # print(failed)
     # print(len(failed[0]), len(outputs[0]), len(nofits[0]))
-    assert len(failed[0]) == 12 and len(outputs[0]) == 8 and len(nofits[0]) == 12
+    assert len(nofits[0]) == 12
     assert sorted(nofits[0]) == sorted(list(failed[0].keys()))
     return
 
