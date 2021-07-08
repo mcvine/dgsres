@@ -180,6 +180,7 @@ def fit_all_in_one(config, verbose=False):
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
     width = r'1\textwidth'
+    nofits = []
     for sl in config.slices:
         doc = _wph.initReportDoc("%s-fit-report" % sl.name) # report document
         qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
@@ -200,6 +201,7 @@ def fit_all_in_one(config, verbose=False):
                 else:
                     qE2fitter, nofit = fit_all_grid_points(sl, config, use_cache=True, verbose=verbose)
                 pkl.dump((qE2fitter, nofit), open(path, 'wb'))
+            nofits.append(nofit)
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
@@ -248,7 +250,7 @@ def fit_all_in_one(config, verbose=False):
         # save PDF
         doc.generate_pdf(clean_tex=False)
         continue
-    return
+    return nofits
 
 def create_convolution_calculator(slice, resolution_range=None):
     """Create a "convoler", instance of .convolve2d.Convolver from slice convolution specs    
@@ -532,8 +534,14 @@ def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
             if not good_results:
                 chisqs = [r.chisqr for r in results]
                 median_chisq = np.median(chisqs)
-                candidates = [(np.abs(r.best_values['alpha']-median_alpha), r) for r in results if r.chisqr < median_chisq+1]
-                fitter.fit_result = sorted(candidates)[0][1]
+                fr = None; max1 = None
+                for r in results:
+                    if r.chisqr >= median_chisq+1: continue
+                    tocompare = np.abs(r.best_values['alpha']-median_alpha), r.chisqr
+                    if max1 is None or max1<tocompare:
+                        max1, fr = tocompare, r
+                    continue
+                fitter.fit_result = fr
             else:
                 fitter.fit_result = good_results[0]
             qE2fitter[this] = fitter
