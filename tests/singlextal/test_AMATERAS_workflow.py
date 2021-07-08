@@ -27,6 +27,9 @@ def test():
     from dgsres.singlextal import workflow
     os.chdir(workdir)
     outputs, failed = workflow.simulate_all_in_one(config)
+    f0 = failed[0]
+    for item in f0:
+        print(item)
     nofits = workflow.fit_all_in_one(config)
     # print(outputs)
     # print(failed)
