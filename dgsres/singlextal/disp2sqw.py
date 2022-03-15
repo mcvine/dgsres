@@ -84,7 +84,12 @@ def get_slice(disp_calc, slice, Nq_sample=None, Nsample_perp=None, sampling_meth
     elif sampling_method == 'uniform':
         rs = np.random.random( (Nsample_perp*Nsample_perp, 2) )
         rs[:, 0] *= perp1_range[1]-perp1_range[0]; rs[:, 0] += perp1_range[0]
-        rs[:, 1] *= perp2_range[1]-perp2_range[0]; rs[:, 0] += perp2_range[0]
+        rs[:, 1] *= perp2_range[1]-perp2_range[0]; rs[:, 1] += perp2_range[0]
+        perp_qs = rs
+    elif sampling_method == 'gaussian':
+        rs = np.random.normal( 0., 1., (Nsample_perp*Nsample_perp, 2))
+        rs[:, 0] *= (perp1_range[1]-perp1_range[0])/2.355; rs[:, 0] += (perp1_range[0]+perp1_range[1])/2
+        rs[:, 1] *= (perp2_range[1]-perp2_range[0])/2.355; rs[:, 1] += (perp2_range[0]+perp2_range[1])/2
         perp_qs = rs
     else:
         raise ValueError("Unknown sampling method %r" % sampling_method)
@@ -140,7 +145,12 @@ def get_slice_fast(disp_calc, slice, Nq_sample=None, Nsample_perp=None, sampling
     elif sampling_method == 'uniform':
         rs = np.random.random( (Nsample_perp*Nsample_perp, 2) )
         rs[:, 0] *= perp1_range[1]-perp1_range[0]; rs[:, 0] += perp1_range[0]
-        rs[:, 1] *= perp2_range[1]-perp2_range[0]; rs[:, 0] += perp2_range[0]
+        rs[:, 1] *= perp2_range[1]-perp2_range[0]; rs[:, 1] += perp2_range[0]
+        perp_qs = rs
+    elif sampling_method == 'gaussian':
+        rs = np.random.normal( 0., 1., (Nsample_perp*Nsample_perp, 2))
+        rs[:, 0] *= (perp1_range[1]-perp1_range[0])/2.355; rs[:, 0] += (perp1_range[0]+perp1_range[1])/2
+        rs[:, 1] *= (perp2_range[1]-perp2_range[0])/2.355; rs[:, 1] += (perp2_range[0]+perp2_range[1])/2
         perp_qs = rs
     else:
         raise ValueError("Unknown sampling method %r" % sampling_method)

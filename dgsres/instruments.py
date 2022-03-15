@@ -103,3 +103,21 @@ class amateras:
     @classmethod
     def scattering_angle_constraints(cls, theta, phi):
         return ((theta<140.) * (theta>-40)) * (phi<20.5) * (phi>-20.5)
+
+class LET:
+    instrument = sx.instrument(
+        name = 'LET',
+        detsys_radius = "3.5*meter",
+        L_m2s = "25*meter",
+        offset_sample2beam = "-0.15*meter" # offset from sample to saved beam. don't change this unless you are sure what you are doing
+    )
+
+    pixel = sx.pixel(
+        radius = "0.5*inch",
+        height = "4./1024*meter",
+        pressure = "10.0*atm",
+    )
+
+    @classmethod
+    def scattering_angle_constraints(cls, theta, phi):
+        return ((theta<140.) * (theta>-40.)) * (phi<30.) * (phi>-30.)
