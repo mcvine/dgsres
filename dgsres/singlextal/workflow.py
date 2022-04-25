@@ -104,7 +104,7 @@ from . import use_res_comps, fit_ellipsoid, _workflow_pdf_helpers as _wph
 from mcvine.workflow import singlextal as sx
 
 
-def simulate_all_in_one(config):
+def simulate_all_in_one(config, debug=False):
     """simulate all grid points, and compose PDF reports
 
     A PDF includes basic info, a plot of dynamical range, and a plot of simulated resolution functions
@@ -144,7 +144,7 @@ def simulate_all_in_one(config):
         # simulate
         with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
             outputs1, failed1 = simulate_all_grid_points(
-                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=False)
+                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=debug)
             outputs.append(outputs1)
             failed.append(failed1)
 
@@ -168,6 +168,16 @@ def simulate_all_in_one(config):
         doc.generate_pdf(clean_tex=False)
         continue
     return outputs, failed
+
+def print_sim_all_in_one_output(outputs, failures):
+    for output in outputs:
+        for qE, o in output.items(): 
+            print(qE)
+            print(o)
+    for failure in failures:
+        for qE, f in failure.items():
+            print(qE)
+            print(f)
 
 def fit_all_in_one(config, verbose=False):
     """fit all grid points, and compose PDF reports
@@ -364,7 +374,7 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
     # run
     cmd = "python run.py"
     start = time.time()
-    out = sp.check_output(cmd, shell=True, cwd=outdir)
+    out = sp.check_output(cmd, shell=True, stderr=sp.STDOUT, cwd=outdir)
     end = time.time()
     duration = end - start
     print("* simulation took %s seconds" % duration)
@@ -372,13 +382,18 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
 
 
 def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
+    import subprocess as sp, shutil
     failed = {}; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             simdir = config.simdir(q,E, slice)
-            if not overwrite and os.path.exists(simdir): continue
+            if os.path.exists(simdir):
+                if not overwrite: continue
+                shutil.rmtree(simdir)
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
+            except sp.CalledProcessError as e:
+                failed[(q,E)] = e.output
             except:
                 import traceback as tb
                 failed[(q,E)] = tb.format_exc()
