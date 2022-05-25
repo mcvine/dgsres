@@ -167,7 +167,7 @@ hkl_projection = %(hkl_projection)r
 mc_p_path = './mc_params.yml'
 import yaml, os
 if os.path.exists(mc_p_path):
-    mc_params = yaml.load(open(mc_p_path))
+    mc_params = yaml.safe_load(open(mc_p_path))
 else:
     mc_params = dict(Nbuffer=10000, Nrounds_beam=1)
 Nbuffer = 100000
@@ -313,11 +313,16 @@ def run(beam_neutrons_path, instrument, samplexmlpath, psi, hkl2Q, pixel, t_m2p,
         # should not use before_detected. It could be rotated in spherical case
         scattered = at_sample_location
         detected = after_detected
+        # import pdb; pdb.set_trace()
         del (before_dummy_start, after_dummy_start,
              before_incident, after_incident,
              before_scattered, after_scattered,
              before_detected, after_detected,
              before_dummy_end, after_dummy_end)
+        if incident.v.shape != scattered.v.shape:
+            raise RuntimeError("incident and scatter velocity shape mismatch: {} vs {}. Probably there are invalid neutrons".format(
+                incident.v.shape, scattered.v.shape
+            ))
         is_scattered = incident.v != scattered.v
         is_scattered = np.logical_or(
             is_scattered[:,0],
