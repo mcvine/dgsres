@@ -253,7 +253,7 @@ def fit_all_in_one(config, verbose=False):
                     plt.figure()
                     plot_compare_fit_to_data(fitter)
                     plot.add_plot(width=pylatex.NoEscape(width))
-                    plot.add_caption('Resolution at q=%s, E=%s' % qE)
+                    plot.add_caption('Resolution at =%s, E=%s' % qE)
                     plt.close()
                 doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
                 
@@ -472,7 +472,7 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
    
     f,ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     #simulation plot
-    cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z)
+    cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z,shading='auto',rasterized=True)
     ax[0,0].set_title('mcvine sim')
     ax[0,0].set_xlabel(r'$Q-Q_0$ (rlu)')
     ax[0,0].set_ylabel(r'$\omega-\omega_0$ (meV)')
@@ -480,7 +480,7 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     # fit plot
     scale = res_z.sum()/result.best_fit.sum()
     iqe_fit = result.best_fit.reshape(res_z.shape)*scale
-    cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit)
+    cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit,shading='auto',rasterized=True)
     ax[0,1].set_title('fit')
     ax[0,1].set_xlabel(r'$Q-Q_0$ (rlu)')
     ax[0,1].set_ylabel(r'$\omega-\omega_0$ (meV)')
@@ -496,7 +496,7 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     ax[1,1].plot(Es, res_z.sum(1), label='mcvine sim')
     ax[1,1].plot(Es, iqe_fit.sum(1), label='fit')
     ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
-    ax[1,0].legend()
+    ax[1,1].legend()
     
     return
 
@@ -620,7 +620,7 @@ def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
             result = fitter.fit_result
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
-            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape))
+            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape),shading='auto',rasterized=True)
     plt.tight_layout()
     return
 
@@ -694,7 +694,7 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
-            ax1.pcolormesh(dqgrid, dEgrid, z)
+            ax1.pcolormesh(dqgrid, dEgrid, z,shading='auto',rasterized=True)
             continue
         continue
     plt.tight_layout()
