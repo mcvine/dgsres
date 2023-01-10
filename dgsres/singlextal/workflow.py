@@ -250,11 +250,10 @@ def fit_all_in_one(config, verbose=False):
         with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
             for qE, fitter in qE2fitter.items():
                 with doc.create(pylatex.Figure(position='htbp')) as plot:
-                    plt.figure()
-                    plot_compare_fit_to_data(fitter)
+                    fig = plot_compare_fit_to_data(fitter)
                     plot.add_plot(width=pylatex.NoEscape(width))
                     plot.add_caption('Resolution at =%s, E=%s' % qE)
-                    plt.close()
+                    plt.close(fig)
                 doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
                 
         # save PDF
@@ -498,7 +497,7 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
     ax[1,1].legend()
     
-    return
+    return f
 
 def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
     qE2fitter = dict()
