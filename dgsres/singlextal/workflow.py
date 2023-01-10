@@ -470,26 +470,32 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     qgrid, Egrid = fitter.qEgrids
     result = fitter.fit_result
    
-    f,ax = plt.subplots(nrows=2,ncols=2,figsize=figsize())
+    f,ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     #simulation plot
     cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z)
     ax[0,0].set_title('mcvine sim')
+    ax[0,0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,0].set_ylabel(r'$\omega-\omega_0$ (meV)')
     f.colorbar(cax1,ax=ax[0,0])
     # fit plot
     scale = res_z.sum()/result.best_fit.sum()
     iqe_fit = result.best_fit.reshape(res_z.shape)*scale
     cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit)
     ax[0,1].set_title('fit')
+    ax[0,1].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,1].set_ylabel(r'$\omega-\omega_0$ (meV)')
     f.colorbar(cax2,ax=ax[0,1])
     
     qs = qgrid[0]; Es = Egrid[:,0]
     #plot Q cut
     ax[1,0].plot(qs, res_z.sum(0), label='mcvine sim')
     ax[1,0].plot(qs, iqe_fit.sum(0), label='fit')
+    ax[1,0].set_xlabel(r'$Q-Q_0$ (rlu)')
     ax[1,0].legend()
     #plot E cut
     ax[1,1].plot(Es, res_z.sum(1), label='mcvine sim')
     ax[1,1].plot(Es, iqe_fit.sum(1), label='fit')
+    ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
     ax[1,0].legend()
     
     return
