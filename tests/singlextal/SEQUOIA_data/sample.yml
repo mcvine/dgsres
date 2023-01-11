@@ -1,0 +1,15 @@
+name: NiPS3
+chemical_formula: NiPS3
+lattice: 
+ constants: 5.81955, 10.08404, 6.89595, 90, 106.221, 90
+ basis_vectors:
+  - 5.81955, 0, 0
+  - 0, 10.08404, 0
+  - -1.92634, 0, 6.62143
+excitations:
+ - type: DGSresolution
+orientation:
+ u: 0.1605,-1.000,-0.0140
+ v: -1.0000,-0.4995,0.1347
+shape: cylinder radius="12.5*mm" height="10.0*mm" 
+temperature: 0.3*K
