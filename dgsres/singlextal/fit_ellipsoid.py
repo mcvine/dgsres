@@ -11,7 +11,7 @@ import os, numpy as np, lmfit
 from .PSF_Affine_Model import gaus
 from .fit2ee import EEModel
 
-
+import copy
 from .fit_2d_psf import Fit as base
 
 class Fit(base):
@@ -118,6 +118,20 @@ def qEgrid2range(qgrid, Egrid):
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     return qrange, Erange
     
+
+
+def _fitcore(ugrid, vgrid, z, model,fit_rounds=None):
+    if not fit_rounds: fit_rounds = 3
+    results = []
+    for i in range(fit_rounds):
+        print(" -- Fitting round %s" % i)
+        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
+        # print result.fit_report()
+        results.append(result)
+        print("    chisq=%s" % result.chisqr)
+    return results
+
+
 def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None, return_all_results=False):
     if not rounds: rounds = 3
     # convert to unitless
@@ -127,26 +141,16 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
     print("Established model:", model)
     model.print_param_hints(colwidth=12)
     print("Start fitting...")
-    results = []
-    for i in range(rounds):
-        print(" -- Fitting round %s" % i)
-        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
-        # print result.fit_report()
-        results.append(result)
-        print("    chisq=%s" % result.chisqr)
-        # print
+    #results = []
+    results_0 = _fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
         
     # alpha may be 90 degrees off
     print("Start fitting with alpha_guess+90degree...")
     alpha, beta = guess_results[:2]
     model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta, alpha_bounds=alpha_bounds)
-    for i in range(rounds):
-        print(" -- Fitting round %s" % i)
-        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
-        # print result.fit_report()
-        results.append(result)
-        print("    chisq=%s" % result.chisqr)
-        # print
+    results_90 = _fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
+    
+    results = results_0 + results_90
     results.sort(key=lambda x: x.chisqr)
     if return_all_results:
         return results
