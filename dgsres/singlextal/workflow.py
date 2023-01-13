@@ -250,11 +250,10 @@ def fit_all_in_one(config, verbose=False):
         with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
             for qE, fitter in qE2fitter.items():
                 with doc.create(pylatex.Figure(position='htbp')) as plot:
-                    plt.figure()
-                    plot_compare_fit_to_data(fitter)
+                    fig = plot_compare_fit_to_data(fitter)
                     plot.add_plot(width=pylatex.NoEscape(width))
-                    plot.add_caption('Resolution at q=%s, E=%s' % qE)
-                    plt.close()
+                    plot.add_caption('Resolution at =%s, E=%s' % qE)
+                    plt.close(fig)
                 doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
                 
         # save PDF
@@ -469,29 +468,36 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     res_z = fitter.res_z
     qgrid, Egrid = fitter.qEgrids
     result = fitter.fit_result
-    plt.figure(figsize=figsize)
-    plt.subplot(2,2,1)
-    plt.title('mcvine sim')
-    plt.pcolormesh(qgrid, Egrid, res_z)
-    plt.colorbar()
-    plt.subplot(2,2,2)
-    plt.title('fit')
+   
+    f,ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    #simulation plot
+    cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z,shading='auto',rasterized=True)
+    ax[0,0].set_title('mcvine sim')
+    ax[0,0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,0].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax1,ax=ax[0,0])
+    # fit plot
     scale = res_z.sum()/result.best_fit.sum()
     iqe_fit = result.best_fit.reshape(res_z.shape)*scale
-    plt.pcolormesh(qgrid, Egrid, iqe_fit)
-    plt.colorbar()
-
-    qs = qgrid[0]; Es = Egrid[:,0]
-    plt.subplot(2,2,3)
-    plt.plot(qs, res_z.sum(0), label='mcvine sim')
-    plt.plot(qs, iqe_fit.sum(0), label='fit')
-    plt.legend()
-    plt.subplot(2,2,4)
-    plt.plot(Es, res_z.sum(1), label='mcvine sim')
-    plt.plot(Es, iqe_fit.sum(1), label='fit')
-    plt.legend()
+    cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit,shading='auto',rasterized=True)
+    ax[0,1].set_title('fit')
+    ax[0,1].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,1].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax2,ax=ax[0,1])
     
-    return
+    qs = qgrid[0]; Es = Egrid[:,0]
+    #plot Q cut
+    ax[1,0].plot(qs, res_z.sum(0), label='mcvine sim')
+    ax[1,0].plot(qs, iqe_fit.sum(0), label='fit')
+    ax[1,0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[1,0].legend()
+    #plot E cut
+    ax[1,1].plot(Es, res_z.sum(1), label='mcvine sim')
+    ax[1,1].plot(Es, iqe_fit.sum(1), label='fit')
+    ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
+    ax[1,1].legend()
+    
+    return f
 
 def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
     qE2fitter = dict()
@@ -613,7 +619,7 @@ def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
             result = fitter.fit_result
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
-            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape))
+            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape),shading='auto',rasterized=True)
     plt.tight_layout()
     return
 
@@ -687,7 +693,7 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
-            ax1.pcolormesh(dqgrid, dEgrid, z)
+            ax1.pcolormesh(dqgrid, dEgrid, z,shading='auto',rasterized=True)
             continue
         continue
     plt.tight_layout()
