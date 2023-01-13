@@ -435,6 +435,14 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
 
 
 def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
+    """ function to perform a single fit to a a resolution ellipsoid.
+        the file to fit must be in the working  directory 
+        q is the q position of the given axis 
+        E is the energy transfer,
+        slice is the slice description
+        config is the configuration of the fit
+        extra_fitting parameters is extra parameters to send to the fit
+        use_cache is if to load and save the file"""
     if use_cache:
         import cloudpickle as pkl
         path = '%s-q_%.3f-E_%.3f-fitter.pkl' % (slice.name, q, E)
