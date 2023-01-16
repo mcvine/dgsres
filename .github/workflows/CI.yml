@@ -24,6 +24,9 @@ jobs:
       - name: install glut
         run: sudo apt-get update && sudo apt-get install -y freeglut3-dev libglu1-mesa
 
+      - name: install latex
+        run: sudo apt-get install -y texlive-latex-extra
+
       - name: Check out source code
         uses: actions/checkout@v2
         with:
@@ -44,9 +47,9 @@ jobs:
       # install deps and build
       - name: install / build / test
         shell: pwsh
-        run: |
+        run:
           conda install mamba
-          mamba install mcvine mantid-framework=6
+          mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
           mcvine
           ./builders/github-actions/build_and_test.sh
         env:
