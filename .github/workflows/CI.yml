@@ -33,6 +33,11 @@ jobs:
           lfs: 'true'
           fetch-depth: 0
 
+      - name: check test data
+        shell: pwsh
+        run: |
+          ls -tl tests/data/beam/ARCS/100meV/out/neutrons
+
       - name: ~/.mantid
         run: git clone https://github.com/yxqd/dotmantid ~/.mantid
 
