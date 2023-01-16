@@ -26,7 +26,7 @@ def test():
         dQ_axis=(-2, 2, 0.02),
         dE_axis=(-30, 30, 1.),
         ncount = 1e6,
-        nodes = 5,
+        nodes = 2,
         )
     sim.run(E=E)
     return
