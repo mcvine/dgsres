@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import os, numpy as np, tempfile, shutil
-thisdir = os.path.dirname(__file__)
+import os, numpy as np, tempfile, shutil, pytest
+thisdir = os.path.abspath(os.path.dirname(__file__))
 
 @pytest.mark.skipif(True, reason='temporarily disabled')
 def test():
