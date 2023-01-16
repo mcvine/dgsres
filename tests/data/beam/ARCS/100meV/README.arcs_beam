@@ -1,0 +1,13 @@
+
+arcs_beam: perform ARCS beam simulation and save various data files
+
+Steps:
+* configure moderator2sample simulation using cmd line inputs
+* run moderator2sample simulation
+* sanitize the outputs and save them
+
+Dirs and files:
+* out: sanitized output including neutron packets, monitor data histograms etc
+* arcs_moderator2sample.pml: configuration file for moderator2sample sim
+* run-m2s.sh: script that runs the moderator2sample sim
+* _m2sout: "raw" output from the moderator2sample sim
