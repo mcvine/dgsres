@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE SampleAssembly>
+
+<SampleAssembly name="X"
+   max_multiplescattering_loops_among_scatterers="1"
+   max_multiplescattering_loops_interactM_path1="4"
+   min_neutron_probability=".1"
+ >
+  
+  <PowderSample name="PbTe" type="sample">
+    <Shape>
+      <rotation angles="-45.*deg, 0.*deg, 0.*deg">
+        <cylinder radius=".5*cm" height="3.5*cm"/>
+      </rotation>
+    </Shape>
+    <Phase type="crystal">
+      <ChemicalFormula>PbTe</ChemicalFormula>
+      <xyzfile>PbTe.xyz</xyzfile>
+    </Phase>
+  </PowderSample>
+  
+  <LocalGeometer registry-coordinate-system="InstrumentScientist">
+    <Register name="PbTe" position="(0,0,0)" orientation="(0, 0, 0)"/>
+  </LocalGeometer>
+
+  <Environment temperature="100*K"/>
+
+</SampleAssembly>
