@@ -73,7 +73,17 @@ class Sim:
         open(self.scatterer_xml, 'wt').write(text)
         # run
         _exec('make clean')
-        _exec('time make NCOUNT={ncount} NODES={nodes}'.format(ncount=self.ncount, nodes=self.nodes))
+        def printlog(path):
+            if os.path.exists(path):
+                print(open(path).read())
+        def onerror():
+            printlog('log.scatter')
+            printlog('log.create-nxs')
+            raise RuntimeError("simulation failed")
+        _exec(
+            'time make NCOUNT={ncount} NODES={nodes}'.format(ncount=self.ncount, nodes=self.nodes),
+            onerror=onerror
+        )
         os.chdir(pwd)
         return
 
@@ -142,9 +152,12 @@ scatterer_template = """<?xml version="1.0"?>
 </homogeneous_scatterer>
 """
 
-def _exec(cmd):
+def _exec(cmd, onerror=None):
     if os.system(cmd):
-        raise RuntimeError("%s failed" % cmd)
+        if onerror:
+            onerror()
+        else:
+            raise RuntimeError("%s failed" % cmd)
     return
 
 
