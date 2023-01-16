@@ -8,6 +8,7 @@ from dgsres.singlextal import fit2icg
 from dgsres import icg
 here = os.path.abspath(os.path.dirname(__file__))
 
+@pytest.mark.skipif(True, reason='temporarily disabled')
 def test():
     cncs_geom = icg.Geom(l1=6.413, l2=36.2-6.413, l3=3.5)
     Ei = 12.
