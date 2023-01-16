@@ -47,7 +47,7 @@ jobs:
       # install deps and build
       - name: install / build / test
         shell: pwsh
-        run:
+        run: |
           conda install mamba
           mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
           mcvine
