@@ -30,12 +30,13 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@v2
         with:
-          lfs: 'true'
           fetch-depth: 0
+          submodules: recursive
 
-      - name: check test data
+      - name: unzip test data
         shell: pwsh
         run: |
+          unzip tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0/dhkls.npy.zip -d tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0
           ls -tl tests/data/beam/ARCS/100meV/out/neutrons
 
       - name: ~/.mantid
