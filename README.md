@@ -9,8 +9,12 @@ Neutron Direct Geometry Spectrometer Resolution Calculators
 This repository is a collection of resolution calculators for direct-geometry inelastic neutron spectrometers.
 
 Resolution for direct geometry spectrometers is asymmetric and non-stationary. The following is the mcvine simulation and model fitting results for an ARCS experiment:
+
 ![image](https://user-images.githubusercontent.com/1796155/59158473-a8947e00-8a88-11e9-9e4c-0158ee5e0443.png)
 
+MCViNE simulations can capture well the resolution for direct-geometry neutron chopper spectrometers. The following is a comparison plot of MCViNE-computed resolution functions and silicon single crystal diffraction peaks measured at the ARCS instrument
+
+![image](https://user-images.githubusercontent.com/1796155/212523630-6f6c7277-0ee1-4989-b0fd-da045a1eae9c.png)
 
 ## Dependencies
 
