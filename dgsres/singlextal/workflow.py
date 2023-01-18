@@ -434,7 +434,7 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
     return
 
 
-def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
+def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multiprocess=True):
     """ function to perform a single fit to a a resolution ellipsoid.
         the file to fit must be in the working  directory 
         q is the q position of the given axis 
@@ -465,6 +465,7 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
     )
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
     fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
+    fitting_params['multiprocess'] = multiprocess
     if extra_fitting_params: fitting_params.update(extra_fitting_params)
     fitter.fit_result = fitter.fit(**fitting_params)
     if use_cache:

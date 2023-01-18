@@ -13,6 +13,7 @@ from .fit2ee import EEModel
 
 import copy
 from .fit_2d_psf import Fit as base
+from multiprocessing import Process, Pipe
 
 class Fit(base):
 
@@ -119,20 +120,44 @@ def qEgrid2range(qgrid, Egrid):
     return qrange, Erange
     
 
+class _fitcore(object):
+    def __init__(self, ugrid,vgrid,z,model,fit_rounds=None):
+        self.ugrid = ugrid
+        self.vgrid = vgrid
+        self.z = z
+        self.model = model
+        self.fit_rounds = fit_rounds
+        self.results = None
 
-def _fitcore(ugrid, vgrid, z, model,fit_rounds=None):
-    if not fit_rounds: fit_rounds = 3
-    results = []
-    for i in range(fit_rounds):
-        print(" -- Fitting round %s" % i)
-        result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
-        # print result.fit_report()
-        results.append(result)
-        print("    chisq=%s" % result.chisqr)
-    return results
+    def fit(self,conn=None):
+        if not self.fit_rounds: self.fit_rounds = 3
+        self.results = []
+        for i in range(self.fit_rounds):
+            print(" -- Fitting round %s" % i)
+            result = self.model.fit(self.z, u=self.ugrid.flatten(), v=self.vgrid.flatten(), method='differential_evolution')
+            # print result.fit_report()
+            self.results.append(result)
+            print("    chisq=%s" % result.chisqr)
+        #print(self.results)
+        if not conn:
+            pass
+        else:
+            conn.send(self)
+         
+
+# def _fitcore(ugrid, vgrid, z, model,fit_rounds=None):
+#     if not fit_rounds: fit_rounds = 3
+#     results = []
+#     for i in range(fit_rounds):
+#         print(" -- Fitting round %s" % i)
+#         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
+#         # print result.fit_report()
+#         results.append(result)
+#         print("    chisq=%s" % result.chisqr)
+#     return results
 
 
-def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None, return_all_results=False):
+def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None, return_all_results=False,multiprocess=True):
     if not rounds: rounds = 3
     # convert to unitless
     ugrid, vgrid = qE2uv_grid(qgrid, Egrid)
@@ -141,16 +166,33 @@ def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=Non
     print("Established model:", model)
     model.print_param_hints(colwidth=12)
     print("Start fitting...")
-    #results = []
-    results_0 = _fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
-        
+    fit_0 =_fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
+    if multiprocess:
+        conn0_s,conn0_r = Pipe()
+        p0 = Process(target=fit_0.fit,args=(conn0_s,)) 
+    else:
+        fit_0.fit()
     # alpha may be 90 degrees off
+
     print("Start fitting with alpha_guess+90degree...")
     alpha, beta = guess_results[:2]
     model, guess_results = guessModel(qgrid, Egrid, I, gaussian2d_threshold, alpha=alpha+np.pi/2, beta=beta, alpha_bounds=alpha_bounds)
-    results_90 = _fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
-    
-    results = results_0 + results_90
+    fit_90 = _fitcore(ugrid,vgrid,z,model,fit_rounds=rounds)
+    if multiprocess:
+        conn90_s,conn90_r = Pipe()
+        p90 =Process(target=fit_90.fit,args=(conn90_s,))
+    else:
+        fit_90.fit()
+    if multiprocess:
+        p0.start()
+        p90.start()
+        fit_0 = conn0_r.recv()
+        fit_90 = conn90_r.recv()
+        p0.join()
+        p90.join()
+    print(fit_0.results)
+    print(fit_90.results)
+    results = fit_0.results + fit_90.results
     results.sort(key=lambda x: x.chisqr)
     if return_all_results:
         return results
