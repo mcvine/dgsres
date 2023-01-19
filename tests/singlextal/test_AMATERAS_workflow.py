@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
-import os, numpy as np, tempfile, shutil
-thisdir = os.path.dirname(__file__)
+import os, numpy as np, tempfile, shutil, pytest
+thisdir = os.path.abspath(os.path.dirname(__file__))
 
 def test():
     workdir = tempfile.mkdtemp(dir=thisdir)
     print(workdir)
     # link beam dir
     beamdir = os.path.join(workdir, 'beam')
-    os.symlink(os.path.expanduser('~/beam/AMATERAS/2.63meV'), beamdir)
+    # beamdir_orig = os.path.expanduser('~/beam/AMATERAS/2.63meV')
+    beamdir_orig = os.path.join(thisdir, '..', 'data', 'beam', 'AMATERAS', '2.63meV')
+    os.symlink(beamdir_orig, beamdir)
     # copy sample yaml file
     shutil.copyfile(
         os.path.join(thisdir, 'amateras_workflow_data/sample.yaml'),
