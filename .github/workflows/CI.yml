@@ -1,0 +1,62 @@
+name: CI
+
+env: {}
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "32 21 * * *"
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.8"]
+    steps:
+      - name: install glut
+        run: sudo apt-get update && sudo apt-get install -y freeglut3-dev libglu1-mesa
+
+      - name: install latex
+        run: sudo apt-get install -y texlive-latex-extra
+
+      - name: Check out source code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: unzip test data
+        shell: pwsh
+        run: |
+          unzip tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0/dhkls.npy.zip -d tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0
+          ls -tl tests/data/beam/ARCS/100meV/out/neutrons
+
+      - name: ~/.mantid
+        run: git clone https://github.com/yxqd/dotmantid ~/.mantid
+
+      # setup conda
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: test
+          python-version: ${{ matrix.python-version }}
+          channels: mcvine,conda-forge
+
+      # install deps and build
+      - name: install / build / test
+        shell: pwsh
+        run: |
+          conda install mamba
+          mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
+          mcvine
+          ./builders/github-actions/build_and_test.sh
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}

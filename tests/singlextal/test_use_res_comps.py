@@ -13,7 +13,8 @@ def test_setup():
     sampleyml = os.path.join(here, "Si.yml")
     beam = "/SNS/users/lj7/simulations/ARCS/beam/100meV-n1e10"
     # for running on jenkins. data is downloaded by jenkins/getbeam.sh
-    beam = os.path.expanduser("~/beam/ARCS/100meV")
+    # beam = os.path.expanduser("~/beam/ARCS/100meV")
+    beam = os.path.join(here, '..', 'data', 'beam', 'ARCS', '100meV')
     E = 40.
     hkl = [-16/3.,-8/3.,8/3.]
     hkl_projection = np.array([-1.,1.,-1.])/3
