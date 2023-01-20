@@ -113,14 +113,14 @@ class Model:
 def qE2uv_grid(qgrid, Egrid):
     qrange, Erange = qEgrid2range(qgrid, Egrid)
     return qgrid/qrange, Egrid/Erange
-    
+
 def qEgrid2range(qgrid, Egrid):
     qrange = qgrid[0][-1] - qgrid[0][0]
     Erange = Egrid[:, 0][-1] - Egrid[:, 0][0]
     return qrange, Erange
-    
 
 class _fitcore(object):
+    # helper class for `fit` method below
     def __init__(self, ugrid,vgrid,z,model,fit_rounds=None):
         self.ugrid = ugrid
         self.vgrid = vgrid
@@ -139,23 +139,7 @@ class _fitcore(object):
             self.results.append(result)
             print("    chisq=%s" % result.chisqr)
         #print(self.results)
-        if not conn:
-            pass
-        else:
-            conn.send(self)
-         
-
-# def _fitcore(ugrid, vgrid, z, model,fit_rounds=None):
-#     if not fit_rounds: fit_rounds = 3
-#     results = []
-#     for i in range(fit_rounds):
-#         print(" -- Fitting round %s" % i)
-#         result = model.fit(z, u=ugrid.flatten(), v=vgrid.flatten(), method='differential_evolution')
-#         # print result.fit_report()
-#         results.append(result)
-#         print("    chisq=%s" % result.chisqr)
-#     return results
-
+        if conn: conn.send(self)
 
 def fit(qgrid, Egrid, I, rounds=None, gaussian2d_threshold=0.5, alpha_bounds=None, return_all_results=False,multiprocess=True):
     if not rounds: rounds = 3
