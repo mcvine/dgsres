@@ -14,12 +14,27 @@ def sample_from_MDH(fl_name):
                 OL[ky.split('cell_')[1]] = fh['{}/{}'.format(OL_pth,ky)][:][0]
             if ky.find('orientation_matrix')>=0:
                 OL['UB'] = fh['{}/{}'.format(OL_pth,ky)][:]
-     return OL
+    return OL
+
+def gen_lattice_vectors(a,b,c,alpha,beta,gamma):
+    v1 = np.array([a,0,0])
+    bprojx = b*np.cos(np.radians(gamma))
+    bprojy = np.sqrt(b*b- bprojx*bprojx)
+    v2 = np.array([bprojx,bprojy,0])
+    cprojx = c*np.cos(np.radians(beta))
+    cprojy = (b*c*np.cos(np.radians(alpha))-v2[0]*cprojx)/v2[1]
+    cprojz = np.sqrt(c*c - cprojx**2-cprojy**2)
+    v3 = np.array([cprojx, cprojy,cprojz])
+    return [v1,v2,v3]
 
 def prep_for_yml(OL):
     """ transform OL dictionary for use in Yaml"""
     yml_dict = {'name': OL['name'],'chemical_formula':OL['name']}
-    yml_dict['lattice'] = {'constants': '{},{},{},{},{},{}'.format(OL['a'],OL['b'],OL['c'],OL['alpha'],OL['beta'],OL['gamma']) }
+    latt_list = [OL['a'],OL['b'],OL['c'],OL['alpha'],OL['beta'],OL['gamma']]
+    yml_dict['lattice'] = {'constants': '{},{},{},{},{},{}'.format(*latt_list) }
+    latt_v =gen_lattice_vectors(*latt_list)
+    yml_dict['lattice']['basis_vectors'] = ['{}'.format(v) for v in latt_v]
+                                          
     yml_dict['excitations'] ={'type': 'DGSresolution'}
     UBi = np.linalg.inv(OL['UB'])
     u = np.dot(UBi,[0,0,1])
