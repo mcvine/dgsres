@@ -14,4 +14,3 @@ mcvine
 python setup.py install
 
 py.test
-python tests/singlextal/test_workflow_fit.py
