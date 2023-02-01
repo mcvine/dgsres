@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os, numpy as np
 import histogram.hdf as hh, histogram as H
 import scipy.optimize as sopt
+import warnings
 from .PSF_Affine_Model import PSF_Affine_Model, gaus
 
 
@@ -18,9 +19,8 @@ class Fit(object):
         self.createModel()
         return
 
-    def createModel():
-        raise NotImplementedError("createModel")
-        self.model = None
+    def createModel(self):
+        warnings.warn("createModel is not Implemented yet",RuntimeWarning)
         return
 
     def load_mcvine_psf_qE(self, adjust_energy_center=False):

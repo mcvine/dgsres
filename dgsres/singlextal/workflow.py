@@ -104,7 +104,7 @@ from . import use_res_comps, fit_ellipsoid, _workflow_pdf_helpers as _wph
 from mcvine.workflow import singlextal as sx
 
 
-def simulate_all_in_one(config):
+def simulate_all_in_one(config, debug=False):
     """simulate all grid points, and compose PDF reports
 
     A PDF includes basic info, a plot of dynamical range, and a plot of simulated resolution functions
@@ -144,7 +144,7 @@ def simulate_all_in_one(config):
         # simulate
         with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
             outputs1, failed1 = simulate_all_grid_points(
-                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=False)
+                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=debug)
             outputs.append(outputs1)
             failed.append(failed1)
 
@@ -168,6 +168,16 @@ def simulate_all_in_one(config):
         doc.generate_pdf(clean_tex=False)
         continue
     return outputs, failed
+
+def print_sim_all_in_one_output(outputs, failures):
+    for output in outputs:
+        for qE, o in output.items(): 
+            print(qE)
+            print(o)
+    for failure in failures:
+        for qE, f in failure.items():
+            print(qE)
+            print(f)
 
 def fit_all_in_one(config, verbose=False):
     """fit all grid points, and compose PDF reports
@@ -240,11 +250,10 @@ def fit_all_in_one(config, verbose=False):
         with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
             for qE, fitter in qE2fitter.items():
                 with doc.create(pylatex.Figure(position='htbp')) as plot:
-                    plt.figure()
-                    plot_compare_fit_to_data(fitter)
+                    fig = plot_compare_fit_to_data(fitter)
                     plot.add_plot(width=pylatex.NoEscape(width))
-                    plot.add_caption('Resolution at q=%s, E=%s' % qE)
-                    plt.close()
+                    plot.add_caption('Resolution at =%s, E=%s' % qE)
+                    plt.close(fig)
                 doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
                 
         # save PDF
@@ -364,7 +373,7 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
     # run
     cmd = "python run.py"
     start = time.time()
-    out = sp.check_output(cmd, shell=True, cwd=outdir)
+    out = sp.check_output(cmd, shell=True, stderr=sp.STDOUT, cwd=outdir)
     end = time.time()
     duration = end - start
     print("* simulation took %s seconds" % duration)
@@ -372,13 +381,18 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
 
 
 def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
+    import subprocess as sp, shutil
     failed = {}; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             simdir = config.simdir(q,E, slice)
-            if not overwrite and os.path.exists(simdir): continue
+            if os.path.exists(simdir):
+                if not overwrite: continue
+                shutil.rmtree(simdir)
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
+            except sp.CalledProcessError as e:
+                failed[(q,E)] = e.output
             except:
                 import traceback as tb
                 failed[(q,E)] = tb.format_exc()
@@ -420,7 +434,15 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
     return
 
 
-def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
+def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multiprocess=True):
+    """ function to perform a single fit to a a resolution ellipsoid.
+        the file to fit must be in the working  directory 
+        q is the q position of the given axis 
+        E is the energy transfer,
+        slice is the slice description
+        config is the configuration of the fit
+        extra_fitting parameters is extra parameters to send to the fit
+        use_cache is if to load and save the file"""
     if use_cache:
         import cloudpickle as pkl
         path = '%s-q_%.3f-E_%.3f-fitter.pkl' % (slice.name, q, E)
@@ -443,6 +465,7 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None):
     )
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
     fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
+    fitting_params['multiprocess'] = multiprocess
     if extra_fitting_params: fitting_params.update(extra_fitting_params)
     fitter.fit_result = fitter.fit(**fitting_params)
     if use_cache:
@@ -454,29 +477,36 @@ def plot_compare_fit_to_data(fitter, figsize=(8,8)):
     res_z = fitter.res_z
     qgrid, Egrid = fitter.qEgrids
     result = fitter.fit_result
-    plt.figure(figsize=figsize)
-    plt.subplot(2,2,1)
-    plt.title('mcvine sim')
-    plt.pcolormesh(qgrid, Egrid, res_z)
-    plt.colorbar()
-    plt.subplot(2,2,2)
-    plt.title('fit')
+   
+    f,ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    #simulation plot
+    cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z,shading='auto',rasterized=True)
+    ax[0,0].set_title('mcvine sim')
+    ax[0,0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,0].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax1,ax=ax[0,0])
+    # fit plot
     scale = res_z.sum()/result.best_fit.sum()
     iqe_fit = result.best_fit.reshape(res_z.shape)*scale
-    plt.pcolormesh(qgrid, Egrid, iqe_fit)
-    plt.colorbar()
-
-    qs = qgrid[0]; Es = Egrid[:,0]
-    plt.subplot(2,2,3)
-    plt.plot(qs, res_z.sum(0), label='mcvine sim')
-    plt.plot(qs, iqe_fit.sum(0), label='fit')
-    plt.legend()
-    plt.subplot(2,2,4)
-    plt.plot(Es, res_z.sum(1), label='mcvine sim')
-    plt.plot(Es, iqe_fit.sum(1), label='fit')
-    plt.legend()
+    cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit,shading='auto',rasterized=True)
+    ax[0,1].set_title('fit')
+    ax[0,1].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0,1].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax2,ax=ax[0,1])
     
-    return
+    qs = qgrid[0]; Es = Egrid[:,0]
+    #plot Q cut
+    ax[1,0].plot(qs, res_z.sum(0), label='mcvine sim')
+    ax[1,0].plot(qs, iqe_fit.sum(0), label='fit')
+    ax[1,0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[1,0].legend()
+    #plot E cut
+    ax[1,1].plot(Es, res_z.sum(1), label='mcvine sim')
+    ax[1,1].plot(Es, iqe_fit.sum(1), label='fit')
+    ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
+    ax[1,1].legend()
+    
+    return f
 
 def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
     qE2fitter = dict()
@@ -598,7 +628,7 @@ def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
             result = fitter.fit_result
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
-            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape))
+            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape),shading='auto',rasterized=True)
     plt.tight_layout()
     return
 
@@ -672,7 +702,7 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
-            ax1.pcolormesh(dqgrid, dEgrid, z)
+            ax1.pcolormesh(dqgrid, dEgrid, z,shading='auto',rasterized=True)
             continue
         continue
     plt.tight_layout()

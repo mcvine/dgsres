@@ -20,7 +20,8 @@ def test_setup():
 
     sampleyml = os.path.join(here, "Si.yml")
     # still use ARCS beam for now, just for testing purpose
-    beam = os.path.expanduser("~/beam/ARCS/100meV")
+    # beam = os.path.expanduser("~/beam/ARCS/100meV")
+    beam = os.path.join(here, '..', 'data', 'beam', 'ARCS', '100meV')
     E = 40.
     hkl = [-16/3.,-8/3.,8/3.]
     hkl_projection = np.array([-1.,1.,-1.])/3

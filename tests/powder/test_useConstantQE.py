@@ -10,9 +10,10 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 def test():
-    beam = "/SNS/users/lj7/simulations/ARCS/beam/100meV-n1e10"
+    # beam = "/SNS/users/lj7/simulations/ARCS/beam/100meV-n1e10"
     # for running on jenkins. data is downloaded by jenkins/getbeam.sh
-    beam = os.path.expanduser("~/beam/ARCS/100meV")
+    # beam = os.path.expanduser("~/beam/ARCS/100meV")
+    beam = os.path.join(here, '..', 'data', 'beam', 'ARCS', '100meV')
     E = 50.
     Q = 5
     workdir = os.path.join(here, "work.useConstantQE")
@@ -25,7 +26,7 @@ def test():
         dQ_axis=(-2, 2, 0.02),
         dE_axis=(-30, 30, 1.),
         ncount = 1e6,
-        nodes = 5,
+        nodes = 2,
         )
     sim.run(E=E)
     return

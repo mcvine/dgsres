@@ -2,7 +2,7 @@
 #
 # Jiao Lin <jiao.lin@gmail.com>
 
-import os, numpy as np
+import os, numpy as np, pytest
 import mcvine.cli
 from dgsres.singlextal import fit2icg
 from dgsres import icg
