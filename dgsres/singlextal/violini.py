@@ -62,17 +62,17 @@ class VioliniModel:
         """
         # compute covmat
         cm = self.computeCovMat(hkl, E)
-        cm = np.matrix(cm)
+        # cm = np.matrix(cm)
         # inverse
-        ic = cm.I
+        ic = np.linalg.inv(cm)
         # transform the coordinate system
         A = np.array( (eu,ev,ew) ).T
         A = np.block( [[A, np.zeros((3,1))],
                        [np.zeros((1,3)), 1]])
-        A = np.matrix(A)
+        # A = np.matrix(A)
         cm0 = cm
         # print cm0
-        cm = A.T * cm * A # u,v,w,E
+        cm = np.dot(A.T, np.dot(cm, A)) # u,v,w,E
         # print cm
         # integration along v and w
         cm2d = [[cm[0,0] - (cm[0,1]+cm[1,0])**2/4./cm[1,1] - (cm[0,2]+cm[2,0])**2/4./cm[2,2],
@@ -80,13 +80,15 @@ class VioliniModel:
                 [cm[3,0],
                  cm[3,3] - (cm[3,1]+cm[1,3])**2/4./cm[1,1] - (cm[3,2]+cm[2,3])**2/4./cm[2,2]
                 ]]
+        cm2d = np.array(cm2d)
         # print cm2d
         return create_pdf(cm2d)
 
 
 def create_pdf(covmat):
     "create probability distribution function out of covariance matrix"
-    sigma2 = np.matrix(covmat)
+    # sigma2 = np.matrix(covmat)
+    sigma2 = covmat
     det = np.linalg.det(sigma2)
     # det = np.abs(det)
     if det == 0:
@@ -96,10 +98,12 @@ def create_pdf(covmat):
     # print "det", det
     norm_const = 1.0/ ( np.power((2*np.pi),float(size)/2) * np.power(det,1.0/2) )
     # print "norm_const", norm_const
-    inv = sigma2.I
+    # inv = sigma2.I
+    inv = np.linalg.inv(sigma2)
     # print "inv", inv
     def _(x):
-        x = np.matrix(x)
-        result = np.exp( -0.5 * (x * inv * x.T) )
+        # x = np.matrix(x)
+        x = np.array(x)
+        result = np.exp( -0.5 * (x * np.dot(x, inv.T)).sum(-1) )
         return norm_const * result
     return _
