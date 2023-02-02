@@ -113,13 +113,16 @@ def simulate_all_in_one(config):
     import pylatex
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
+    failed_dict = {}
     for sl in config.slices:
+        print 1
         doc = _wph.initReportDoc("%s-sim-report" % sl.name) # report document
         # info
         _wph.slice_info_section(sl, doc)
         
         qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
 
+        print 2
         # dyn range plot
         # larger q range for a broader view 
         ratio = 1.
@@ -128,6 +131,7 @@ def simulate_all_in_one(config):
             max=qaxis.max+(qaxis.max-qaxis.min)*ratio/2,
             step=qaxis.step
         ).ticks()
+        print 3
         width = r'1\textwidth'
         with doc.create(pylatex.Section('Dynamical range')):
             with doc.create(pylatex.Figure(position='htbp')) as plot:
@@ -140,12 +144,14 @@ def simulate_all_in_one(config):
                 plot.add_caption('Dynamical range for slice %s' % sl.name)
                 plt.close()
 
+        print 4
         # simulate
         with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
             outputs, failed = simulate_all_grid_points(
                 slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=False)
 
             if failed:
+                failed_dict[sl.name] = failed
                 # this seems unecessary as what is missing is clear in the plot
                 """
                 doc.append("Failed to calculate resolution functions for the following (Q,E) pairs:")
@@ -164,7 +170,7 @@ def simulate_all_in_one(config):
         # save pdf
         doc.generate_pdf(clean_tex=False)
         continue
-    return
+    return failed_dict
 
 def fit_all_in_one(config):
     """fit all grid points, and compose PDF reports
@@ -362,7 +368,7 @@ def simulate(q, E, slice, outdir, config, Nrounds_beam=1):
 
 
 def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
-    failed = []; outputs = {}
+    failed = {}; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
             simdir = config.simdir(q,E, slice)
@@ -370,7 +376,8 @@ def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
             try:
                 outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
             except:
-                failed.append( (q,E) )
+                import traceback as tb
+                failed[(q,E)] = tb.format_exc()
         continue
     return outputs, failed
 
