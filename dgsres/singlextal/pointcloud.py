@@ -1,12 +1,12 @@
 import os, numpy as np
 
 class PointCloud:
-    
+
     """resolution point cloud. can be regarded as "events" with dh,dk,dl,dE,weight data.
     These data could be generated from mcvine simulation of the resolution function,
     or generated from a simple normal distribution using a 4D cov matrix (see AnalyticalModel).
     """
-    
+
     def __init__(self, dhs, dks, dls, dEs, weights):
         self.dhs = dhs
         self.dks = dks
@@ -14,7 +14,7 @@ class PointCloud:
         self.dEs = dEs
         self.weights = weights
         return
-    
+
     def getThinSlice(
         self, 
         axis1=('h', -0.1,0.1, 0.002), axis2=('E', -3, 3., 0.04),
@@ -36,8 +36,18 @@ class PointCloud:
         ybc = (yedges[:-1] + yedges[1:])/2
         xg, yg = np.meshgrid(xbc, ybc)
         return xg,yg,Ixy
-            
+
+    def getIE(self, Emin, Emax, dE):
+        bins = np.arange(Emin, Emax, dE)
+        I, edges = np.histogram(self.dEs, bins=bins, weights=self.weights)
+        return edges, I
+
+    def getIq(self, direction, qmin, qmax, dq):
+        "getIq('h', -1., 1., 0.02)"
+        bins = np.arange(qmin, qmax, dq)
+        I, edges = np.histogram(self._evts(direction), bins=bins, weights=self.weights)
+        return edges, I
+
     def _evts(self, name):
         return getattr(self, 'd%ss' % name)
-    
 
