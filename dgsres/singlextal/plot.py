@@ -45,7 +45,6 @@ def plot_qE_ellipse(covmat, q, symbol='.', **kwds):
     plt.plot(u[:,0], u[:,1], symbol, **kwds)
     return
 
-
 def compute_qE_ellipse(InvCov4D, q):
     "compute ellipsoid along a q direction"
     qE2qE = np.array(
@@ -67,4 +66,32 @@ def compute_qE_ellipses(InvCov4D, directions=None):
     if directions is None:
         directions = np.eye(3, dtype=float)
     return [(q, compute_qE_ellipse(InvCov4D, q)) for q in directions]
+
+def plot_qq_ellipse(covmat, q1, q2, symbol='.', **kwds):
+    """plot 2d ellipsoid along two hkl directions, given the cov matrix.
+    """
+    invcm = np.linalg.inv(covmat)
+    _, u = compute_qq_ellipse(invcm, q1, q2)
+    from matplotlib import pyplot as plt
+    plt.plot(u[:,0], u[:,1], symbol, **kwds)
+    return
+
+def compute_qq_ellipse(InvCov4D, q1, q2):
+    "compute ellipsoid along a q direction"
+    q1q2_to_qE = np.array([
+        np.hstack([q1, [0]]),
+        np.hstack([q2, [0]]),
+    ])
+    inv_cov = np.dot(q1q2_to_qE, np.dot(InvCov4D, q1q2_to_qE.T))
+    # print inv_cov_hE
+    r = np.linalg.eig(inv_cov)
+    mR = r[1]; lambdas = r[0]
+    RR = 2*np.log(2)
+    theta = np.arange(0, 360, 1.)*np.pi/180
+    u1p = np.sqrt(RR/lambdas[0])*np.cos(theta)
+    u2p = np.sqrt(RR/lambdas[1])*np.sin(theta)
+    up = np.array([u1p, u2p]).T
+    u = np.dot(up, mR.T)
+    return inv_cov, u
+
 
