@@ -36,17 +36,17 @@ def createARCSAnalyticalModel(
         Ei, psi_scan)
 
 
-def plotEllipse(covmat, q, symbol='.', **kwds):
+def plot_qE_ellipse(covmat, q, symbol='.', **kwds):
     """plot 2d ellipsoid along a particular hkl direction, given the cov matrix.
     """
     invcm = np.linalg.inv(covmat)
-    _, u = computeEllipse(invcm, q)
+    _, u = compute_qE_ellipse(invcm, q)
     from matplotlib import pyplot as plt
     plt.plot(u[:,0], u[:,1], symbol, **kwds)
     return
 
 
-def computeEllipse(InvCov4D, q):
+def compute_qE_ellipse(InvCov4D, q):
     "compute ellipsoid along a q direction"
     qE2qE = np.array(
         [np.hstack([q, [0]]),
@@ -63,8 +63,8 @@ def computeEllipse(InvCov4D, q):
     u = np.dot(up, mR.T)
     return inv_cov_qE, u
 
-def computeEllipses(InvCov4D, directions=None):
+def compute_qE_ellipses(InvCov4D, directions=None):
     if directions is None:
         directions = np.eye(3, dtype=float)
-    return [(q, computeEllipse(InvCov4D, q)) for q in directions]
+    return [(q, compute_qE_ellipse(InvCov4D, q)) for q in directions]
 
