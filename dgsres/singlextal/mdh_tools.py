@@ -1,5 +1,17 @@
 import h5py
 import numpy as np
+import yaml
+from mcvine.workflow import singlextal as sx
+
+class slice(object):
+    def __init__(self,name):
+        self.name = name
+        self.grid = grid()
+
+class grid(object):
+    def __init__(self):
+        self.qaxis = None
+        self.Eaxis = None
 
 def sample_from_MDH(fl_name):
     """ get the sample info from the MDH file"""
@@ -16,7 +28,59 @@ def sample_from_MDH(fl_name):
                 OL['UB'] = fh['{}/{}'.format(OL_pth,ky)][:]
     return OL
 
+def angles_from_MDH(fl_name):
+    """get the angle info from each experiment in an MDH"""
+    with h5py.File(fl_name,'r') as fh:
+        jq = list(fh["/MDHistoWorkspace"].keys())
+        explist = [i for i in jq if i.find('experiment')>=0]
+        angles = np.zeros(len(explist))
+        for idx,exp in enumerate(explist):
+            angles[idx] = fh["/MDHistoWorkspace/{}/logs/omega/value".format(exp)][:].mean()
+    return np.sort(angles)
+
+def slice_from_MDH(fl_name,slice_name):
+    """ get the slice info from an MDH"""
+    sl = slice(slice_name)
+    with h5py.File(fl_name,'r') as fh:
+        projection = fh['MDHistoWorkspace/experiment0/logs/W_MATRIX/value'][:]
+        projection = projection.reshape((3,3)) # need to check that this reshapes the matrix correctly.
+        data_shp = np.array(fh['MDHistoWorkspace/data/signal'].shape)[::-1] # the shape of the data the first dimension is the last item in the tuple thus why reversing the array
+        singledims = data_shp==1
+        if singledims.sum()<2:
+            raise RuntimeError('Must be a slice or a cut not a volume')
+        Qdims = np.where(np.invert(singledims[:3]))[0]  # An array of booleans for which Q dimensions vary
+        Q_perp_dims = np.where(singledims[:3])[0]  #An array of booleans for which Q dimensions are fixed.
+        
+        if singledims[-1]:
+            # check if constant E cut # not completed yet.
+            qs = {}
+            for idx in range(Qdims):
+                qs[idx] = fh['MDHistoWorkspace/data/D{}'.format(Qdims[idx])]
+                
+        
+        else: # it is a constant Q cut
+            hkl0 = np.zeros(3)
+            for dimnum in range(len(Q_perp_dims)):
+                qtmp = fh['MDHistoWorkspace/data/D{}'.format(Q_perp_dims[dimnum])][:].mean()
+                hkl0 += projection[Q_perp_dims[dimnum],:]*qtmp     
+            hkl_projection = projection[Qdims[0]]
+            Etmp = fh['MDHistoWorkspace/data/D3'][:]
+            Evals =(Etmp[1:]+Etmp[:-1])/2
+            Eaxis = sx.axis(min=Evals.min(), max=Evals.max(), step=Evals[1]-Evals[0])
+            qtmp = fh['MDHistoWorkspace/data/D{}'.format(Qdims[0])]
+            qvals =(qtmp[1:]+qtmp[:-1])/2
+            qaxis = sx.axis(min=qvals.min(), max=qvals.max(),step=qvals[1]-qvals[0])
+            sl.hkl0 = hkl0
+            sl.hkl_projection = hkl_projection
+            sl.grid.qaxis = qaxis
+            sl.grid.Eaxis = Eaxis
+            return sl
+            
+
 def gen_lattice_vectors(a,b,c,alpha,beta,gamma):
+    """a, b, c lattice parameters in Angstroms
+    alpha, beta,gamma lattice angles in degrees
+    returns a list of the basis vectors"""
     v1 = np.array([a,0,0])
     bprojx = b*np.cos(np.radians(gamma))
     bprojy = np.sqrt(b*b- bprojx*bprojx)
@@ -32,9 +96,8 @@ def prep_for_yml(OL):
     yml_dict = {'name': OL['name'],'chemical_formula':OL['name']}
     latt_list = [OL['a'],OL['b'],OL['c'],OL['alpha'],OL['beta'],OL['gamma']]
     yml_dict['lattice'] = {'constants': '{},{},{},{},{},{}'.format(*latt_list) }
-    latt_v =gen_lattice_vectors(*latt_list)
-    yml_dict['lattice']['basis_vectors'] = ['{}'.format(v) for v in latt_v]
-                                          
+    latt_v = gen_lattice_vectors(*latt_list)
+    yml_dict['lattice']['basis_vectors'] = [['{:0.4f}'.format(vi) for vi in vt] for vt in latt_v]                                    
     yml_dict['excitations'] ={'type': 'DGSresolution'}
     UBi = np.linalg.inv(OL['UB'])
     u = np.dot(UBi,[0,0,1])
