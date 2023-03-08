@@ -2,16 +2,26 @@ import h5py
 import numpy as np
 import yaml
 from mcvine.workflow import singlextal as sx
+import warnings
 
 class slice(object):
     def __init__(self,name):
         self.name = name
         self.grid = grid()
+        self.res_2d_grid = grid()
+        self.fitting = fitting()
 
 class grid(object):
     def __init__(self):
         self.qaxis = None
         self.Eaxis = None
+
+class fitting(object):
+    def __init__(self):
+        self.rounds = 3
+        self.gaussian2d_threshold = 0.5
+        self. alpha_bounds = (-np.pi/2, np.pi/2)
+
 
 def sample_from_MDH(fl_name):
     """ get the sample info from the MDH file"""
@@ -36,7 +46,11 @@ def angles_from_MDH(fl_name):
         angles = np.zeros(len(explist))
         for idx,exp in enumerate(explist):
             angles[idx] = fh["/MDHistoWorkspace/{}/logs/omega/value".format(exp)][:].mean()
-    return np.sort(angles)
+    angles = np.sort(angles)
+    dangles = angles[1:]-angles[:-1]
+    if len(np.unique(dangles))>1:
+        warnings.warn("Warning the angles are not equally spaced")
+    return sx.axis(min=angles[0], max=angles[-1],step=dangles[0])    
 
 def slice_from_MDH(fl_name,slice_name):
     """ get the slice info from an MDH"""
