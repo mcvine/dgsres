@@ -70,8 +70,8 @@ class tests(unittest.TestCase):
                                 'slice_0p5K0E_28meV_4K.nxs')
         ang = mdht.angles_from_MDH(MDH_path)
         self.assertTrue(np.abs(ang.min) < 1e-6)
-        self.assertTrue(np.abs(ang.max-180.0) < 1e-6)
-        self.assertTrue(np.abs(ang.step-1.0) < 1e-6)
+        self.assertTrue(np.abs(ang.max-20.0) < 1e-6)
+        self.assertTrue(np.abs(ang.step-2.0) < 1e-6)
 
     def test_slice_from_MDH(self):
         MDH_path = os.path.join('..', 'data', 'SEQUOIA_data',
