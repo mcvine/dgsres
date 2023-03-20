@@ -38,6 +38,7 @@ def test_plot_ellipse():
         print(violini_cm1)
         violini_pc1 = violini_model.computePointCloud(hkl1, E1)
         plot_qE_with_violini(mcvine_pc1, violini_cm1, 'res_qE_with_violini.png')
+        plot_q1q2_with_violini(mcvine_pc1, violini_cm1, 'res_q1q2_with_violini.png')
 
 def plot_qE_with_violini(mcvine_pc1, violini_cm1, outfile):
     plt.figure(figsize=(10,4))
@@ -61,6 +62,37 @@ def plot_qE_with_violini(mcvine_pc1, violini_cm1, outfile):
         plt.ylabel('E (meV)')
         plt.clim(0, np.max(I1)/2)
         resplot.plot_qE_ellipse(violini_cm1, vector, 'r') #, label='Violini')
+        # plt.legend()
+    plt.tight_layout()
+    plt.savefig(outfile)
+    print(f"made plot {outfile}")
+    plt.close()
+    return
+
+def plot_q1q2_with_violini(mcvine_pc1, violini_cm1, outfile):
+    plt.figure(figsize=(10,4))
+    directions = [
+        ('h', [1,0,0]),
+        ('k', [0,1,0]),
+        ('l', [0,0,1]), 
+    ]
+    for i, direction in enumerate(directions):
+        name, vector = direction
+        qs = [ q for n, q in directions if n != name ]
+        axes = [ (n, -0.5, 0.5, 0.002) for n,q in directions if n!=name ]
+        oaxis1 = name, -0.015, 0.015
+        oaxis2 = 'E', -0.2, 0.2
+        otheraxes = [ oaxis1, oaxis2 ]
+
+        plt.subplot(1,3,i+1)
+        hg1, Eg1, I1 = mcvine_pc1.getThinSlice(axes[0], axes[1], *otheraxes)
+        plt.pcolormesh(hg1, Eg1, I1.T)
+        plt.ylim(-.125, .125)
+        plt.xlim(-.125, .125)
+        plt.xlabel(f'${axes[0][0]}$')
+        plt.ylabel(f'${axes[1][0]}$')
+        plt.clim(0, np.max(I1)/2)
+        resplot.plot_qq_ellipse(violini_cm1, qs[0], qs[1], 'r')
         # plt.legend()
     plt.tight_layout()
     plt.savefig(outfile)
