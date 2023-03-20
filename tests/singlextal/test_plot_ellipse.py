@@ -13,30 +13,43 @@ from dgsres.singlextal import plot as resplot, workflow, violini
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
 def test_plot_ellipse():
+    # resolution simulation configuration
     configdir = os.path.join(thisdir, '../../notebooks/singlextal/Mn3Si2Te6-SEQ')
+    # mcvine sim results for resolution
     mcvinesim = os.path.join(thisdir, '../data/SEQUOIA_data/Mn3Si2Te6/mcvine-res-sim')
+    # workdir for this test
     workdir = os.path.abspath("work.plotellipse")
     if not os.path.exists(workdir):
         os.makedirs(workdir)
     copy_config_files(configdir, workdir)
     with chdir(workdir):
+        # load config
         import imp
         config = imp.load_source('config', 'convolution_config.py')
+        # slice of interest
         sl = config.rwc.slices[0]
         print(sl)
+        # object for resolution data
         class McvineResData(resplot.McvineResolutionData):
             def path(self, q, E):
                 return os.path.join(self.parent_dir, config.rwc.simdir(q, E, sl))
         mrd = McvineResData(mcvinesim, dirname_template=None)
+        # point of interest on the slice
         q1, E1 = 3.1, 19.
+        # hkl of interest
         hkl1 = sl.hkl0+sl.hkl_projection*q1
+        # point cloud of simulated resolution data
         mcvine_pc1 = mrd.loadPointCloud(q1, E1)
+        # cov matrix of simulated resolution data
         mcvine_cm1 = mrd.computeCovMat(q1, E1, dhkl_ranges=[(-0.2,0.2)]*3)
         print(mcvine_cm1)
+        # we can obtain cov matrix from violini model too, but it will be less accurate
         violini_model = workflow.create_violini_model(config.rwc, 0.01)
         violini_cm1 = violini_model.computeCovMat(hkl1, E1)
         print(violini_cm1)
+        # point cloud from violini cov mat
         violini_pc1 = violini_model.computePointCloud(hkl1, E1)
+        # plotting
         plot_qE_with_violini(mcvine_pc1, violini_cm1, 'res_qE_with_violini.png')
         plot_q1q2_with_violini(mcvine_pc1, violini_cm1, 'res_q1q2_with_violini.png')
 
