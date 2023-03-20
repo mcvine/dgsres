@@ -38,6 +38,8 @@ jobs:
         run: |
           unzip tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0/dhkls.npy.zip -d tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0
           ls -tl tests/data/beam/ARCS/100meV/out/neutrons
+          mkdir tests/data/SEQUOIA_data/Mn3Si2Te6
+          tar xfz tests/data/SEQUOIA_data/Mn3Si2Te6-mcvine-res-sim.tgz --directory tests/data/SEQUOIA_data/Mn3Si2Te6/
 
       - name: ~/.mantid
         run: git clone https://github.com/yxqd/dotmantid ~/.mantid

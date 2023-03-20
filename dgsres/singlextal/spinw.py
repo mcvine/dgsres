@@ -41,5 +41,5 @@ def wrap_spinw_disp_func(f):
     import matlab.engine, matlab
     def _(start, end, Nq_disp):
         sp = f(matlab.double(list(start)), matlab.double(list(end)), Nq_disp)
-        return sp['omega'], sp['swInt']
+        return np.array(sp['omega']), np.array(sp['swInt'])
     return _

@@ -1,0 +1,15 @@
+name: Mn3Si2Te6
+chemical_formula: Mn3Si2Te6
+lattice: 
+ constants: 7.042, 7.042, 14.273, 90, 90, 120
+ basis_vectors:
+  - 7.042, 0, 0
+  - -3.521, 6.0985508934500166, 0
+  - 0, 0, 14.273
+excitations:
+ - type: DGSresolution
+orientation:
+ u: -0.1174936,0.20601821,-14.26685034
+ v: -5.63407729,-0.84153412,-0.01625055
+shape: cylinder radius="1*mm" height="6*mm"
+temperature: 300*K
