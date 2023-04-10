@@ -11,14 +11,15 @@ from dgsres.singlextal import fit_ellipsoid
 from dgsres.singlextal.sim_config import config_cls
 import numpy as np
 import shutil
-
+here = os.path.dirname(os.path.abspath('__file__'))
 
 class tests(unittest.TestCase):
     def test_config(self):
-        MDH_path = os.path.join('..', '..', 'data', 'SEQUOIA_data',
-                                'slice_0p5K0E_28meV_4K.nxs')
-        beam_path = os.path.join('..', '..', 'data', 'SEQUOIA_data',
-                                 'beam', '')
+      
+        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                  'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
+        beam_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                                 'SEQUOIA_data', 'beam', ''))
         Ei = 28.0
         workdir = './test_workflow'
         try:
@@ -40,10 +41,10 @@ class tests(unittest.TestCase):
         os.chdir('..')
 
     def test_sim_n_fit(self):
-        MDH_path = os.path.join('..', '..', 'data', 'SEQUOIA_data',
-                                'slice_0p5K0E_28meV_4K.nxs')
-        beam_path = os.path.join('..', '..', 'data', 'SEQUOIA_data',
-                                 'beam', '')
+        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                  'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
+        beam_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                                 'SEQUOIA_data', 'beam', ''))
         Ei = 28.0
         workdir = './test_workflow'
         try:

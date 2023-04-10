@@ -6,7 +6,7 @@ import dgsres.singlextal.mdh_tools as mdht
 import numpy as np
 import os
 import yaml
-
+here = os.path.dirname(os.path.abspath('__file__'))
 
 class tests(unittest.TestCase):
     def test_latt_vec_ortho(self):
@@ -35,10 +35,12 @@ class tests(unittest.TestCase):
         self.assertTrue(np.all(np.abs(vs[2]-np.array([3.828, 1.496, 9.648]))/10.487 < 1e-4))
 
     def test_yaml_creation(self):
-        MDH_path = os.path.join('..', 'data', 'SEQUOIA_data',
-                                'slice_0p5K0E_28meV_4K.nxs')
-        yml_chck_path = os.path.join('..', 'data', 'SEQUOIA_data',
-                                     'NiPS3.yml')
+        #here = os.path.dirname(os.path.abspath('__file__'))
+
+        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                  'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
+        yml_chck_path = os.path.abspath(os.path.join(here, 'tests', 'data', 
+                                  'SEQUOIA_data', 'NiPS3.yml'))
         sample_dict = mdht.sample_from_MDH(MDH_path, yml_file='test.yml')
         with open('test.yml', 'r') as fh:
             tst_dict = yaml.load(fh, Loader=yaml.Loader)
@@ -66,16 +68,20 @@ class tests(unittest.TestCase):
                 self.assertTrue(tst_dict[ky] == smpl_dict[ky])
 
     def test_angles_from_MDH(self):
-        MDH_path = os.path.join('..', 'data', 'SEQUOIA_data',
-                                'slice_0p5K0E_28meV_4K.nxs')
+        #here = os.path.dirname(os.path.abspath('__file__'))
+
+        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                  'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
         ang = mdht.angles_from_MDH(MDH_path)
         self.assertTrue(np.abs(ang.min) < 1e-6)
         self.assertTrue(np.abs(ang.max-20.0) < 1e-6)
         self.assertTrue(np.abs(ang.step-2.0) < 1e-6)
 
     def test_slice_from_MDH(self):
-        MDH_path = os.path.join('..', 'data', 'SEQUOIA_data',
-                                'slice_0p5K0E_28meV_4K.nxs')
+        #here = os.path.dirname(os.path.abspath('__file__'))
+
+        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+                                  'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
         sl = mdht.slice_from_MDH(MDH_path, 'test')
         self.assertTrue(sl.name == 'test')
         self.assertTrue(np.all(sl.hkl_projection-np.array([0, 1, 0]) < 1e-8))
