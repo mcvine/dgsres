@@ -12,13 +12,14 @@ from dgsres.singlextal.sim_config import config_cls
 import numpy as np
 import shutil
 here = os.path.dirname(os.path.abspath('__file__'))
+project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
 class tests(unittest.TestCase):
     def test_config(self):
       
-        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+        MDH_path = os.path.abspath(os.path.join(project_root, 'tests', 'data',
                                   'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
-        beam_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+        beam_path = os.path.abspath(os.path.join(project_root, 'tests', 'data',
                                                  'SEQUOIA_data', 'beam', ''))
         Ei = 28.0
         workdir = './test_workflow'
@@ -41,9 +42,9 @@ class tests(unittest.TestCase):
         os.chdir('..')
 
     def test_sim_n_fit(self):
-        MDH_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+        MDH_path = os.path.abspath(os.path.join(project_root, 'tests', 'data',
                                   'SEQUOIA_data', 'slice_0p5K0E_28meV_4K.nxs'))
-        beam_path = os.path.abspath(os.path.join(here, 'tests', 'data',
+        beam_path = os.path.abspath(os.path.join(project_root, 'tests', 'data',
                                                  'SEQUOIA_data', 'beam', ''))
         Ei = 28.0
         workdir = './test_workflow'
