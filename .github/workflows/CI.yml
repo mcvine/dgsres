@@ -58,6 +58,7 @@ jobs:
           conda install mamba
           mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
           mcvine
+          pwd
           ./builders/github-actions/build_and_test.sh
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
