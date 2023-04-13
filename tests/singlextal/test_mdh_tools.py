@@ -6,7 +6,7 @@ import dgsres.singlextal.mdh_tools as mdht
 import numpy as np
 import os
 import yaml
-here = os.path.dirname(os.path.abspath('__file__'))
+here = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
 
@@ -78,7 +78,7 @@ class tests(unittest.TestCase):
         self.assertTrue(np.abs(ang.step-2.0) < 1e-6)
 
     def test_slice_from_MDH(self):
-        #here = os.path.dirname(os.path.abspath('__file__'))
+       
 
         MDH_path = os.path.join(project_root, 'tests', 'data', 'SEQUOIA_data',
                                 'slice_0p5K0E_28meV_4K.nxs')
