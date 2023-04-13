@@ -38,7 +38,6 @@ jobs:
         run: |
           unzip tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0/dhkls.npy.zip -d tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0
           ls -tl tests/data/beam/ARCS/100meV/out/neutrons
-          find tests
 
       - name: ~/.mantid
         run: git clone https://github.com/yxqd/dotmantid ~/.mantid
@@ -58,7 +57,14 @@ jobs:
           conda install mamba
           mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
           mcvine
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+
+      - name: checking
+        shell: pwsh
+        run: |
           pwd
+          find
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
 
