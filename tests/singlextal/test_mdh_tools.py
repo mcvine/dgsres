@@ -6,7 +6,7 @@ import dgsres.singlextal.mdh_tools as mdht
 import numpy as np
 import os
 import yaml
-here = os.path.dirname(os.path.abspath('__file__'))
+here = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
 class tests(unittest.TestCase):

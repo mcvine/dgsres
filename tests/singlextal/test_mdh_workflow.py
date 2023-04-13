@@ -11,7 +11,7 @@ from dgsres.singlextal import fit_ellipsoid
 from dgsres.singlextal.sim_config import config_cls
 import numpy as np
 import shutil
-here = os.path.dirname(os.path.abspath('__file__'))
+here = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
 class tests(unittest.TestCase):
