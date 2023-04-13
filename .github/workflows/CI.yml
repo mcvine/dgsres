@@ -38,6 +38,7 @@ jobs:
         run: |
           unzip tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0/dhkls.npy.zip -d tests/data/PbTe-CNCS-HH4-Ei_12-E_5-q_0
           ls -tl tests/data/beam/ARCS/100meV/out/neutrons
+          find tests
 
       - name: ~/.mantid
         run: git clone https://github.com/yxqd/dotmantid ~/.mantid
