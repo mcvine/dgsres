@@ -14,7 +14,6 @@ import shutil
 here = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
-
 class tests(unittest.TestCase):
     def test_config(self):
       
