@@ -9,6 +9,7 @@ import yaml
 here = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(here, '..', '..'))
 
+
 class tests(unittest.TestCase):
     def test_latt_vec_ortho(self):
         vs = mdht.gen_lattice_vectors(6, 7, 8, 90, 90, 90)
