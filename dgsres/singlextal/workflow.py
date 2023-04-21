@@ -107,7 +107,8 @@ from mcvine.workflow import singlextal as sx
 def simulate_all_in_one(config, debug=False):
     """simulate all grid points, and compose PDF reports
 
-    A PDF includes basic info, a plot of dynamical range, and a plot of simulated resolution functions
+    A PDF includes basic info, a plot of dynamical range, and a plot of
+    simulated resolution functions
     on a grid.
     """
     outputs, failed = [], []
@@ -115,14 +116,14 @@ def simulate_all_in_one(config, debug=False):
     Ei = config.Ei
     Erange = (-0.3*Ei, .95*Ei)
     for sl in config.slices:
-        doc = _wph.initReportDoc("%s-sim-report" % sl.name) # report document
+        doc = _wph.initReportDoc("%s-sim-report" % sl.name)  # report document
         # info
         _wph.slice_info_section(sl, doc)
-        
+
         qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
 
         # dyn range plot
-        # larger q range for a broader view 
+        # larger q range for a broader view
         ratio = 1.
         expanded_qaxis = sx.axis(
             min=qaxis.min-(qaxis.max-qaxis.min)*ratio/2,
@@ -135,7 +136,7 @@ def simulate_all_in_one(config, debug=False):
                 plt.figure()
                 plotDynRange(
                     sl.hkl0, sl.hkl_projection,
-                    qaxis= expanded_qaxis, Erange=Erange,
+                    qaxis=expanded_qaxis, Erange=Erange,
                     config=config)
                 plot.add_plot(width=pylatex.NoEscape(width))
                 plot.add_caption('Dynamical range for slice %s' % sl.name)
@@ -144,7 +145,8 @@ def simulate_all_in_one(config, debug=False):
         # simulate
         with doc.create(pylatex.Section('Simulated resolution functions on a grid')):
             outputs1, failed1 = simulate_all_grid_points(
-                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam, overwrite=debug)
+                slice=sl, config=config, Nrounds_beam=config.sim_Nrounds_beam,
+                overwrite=debug)
             outputs.append(outputs1)
             failed.append(failed1)
 
@@ -169,9 +171,12 @@ def simulate_all_in_one(config, debug=False):
         continue
     return outputs, failed
 
+
 def print_sim_all_in_one_output(outputs, failures):
+    """ prints the outputs and the failures for each q E point in each slice.
+    """
     for output in outputs:
-        for qE, o in output.items(): 
+        for qE, o in output.items():
             print(qE)
             print(o)
     for failure in failures:
@@ -179,12 +184,14 @@ def print_sim_all_in_one_output(outputs, failures):
             print(qE)
             print(f)
 
+
 def fit_all_in_one(config, verbose=False):
     """fit all grid points, and compose PDF reports
-    
-    A PDF includes fitted resolution function plot, a table of fitting parameters,
-    a grid plot of interpolated resolution functions,
-    and plots of comparison between the simulated and fitted resolution functions.
+
+    A PDF includes fitted resolution function plot, a table of fitting
+    parameters, a grid plot of interpolated resolution functions,
+    and plots of comparison between the simulated and fitted
+    resolution functions.
     """
     import pylatex, cloudpickle as pkl
     Ei = config.Ei
@@ -192,11 +199,11 @@ def fit_all_in_one(config, verbose=False):
     width = r'1\textwidth'
     nofits = []
     for sl in config.slices:
-        doc = _wph.initReportDoc("%s-fit-report" % sl.name) # report document
+        doc = _wph.initReportDoc("%s-fit-report" % sl.name)  # report document
         qaxis = sl.grid.qaxis; Eaxis = sl.grid.Eaxis
         # info
         _wph.slice_info_section(sl, doc)
-        
+
         # fit
         with doc.create(pylatex.Section('Fit resolution functions on grid')):
             # path to saved result
@@ -209,13 +216,14 @@ def fit_all_in_one(config, verbose=False):
                     import dill
                     qE2fitter, nofit = dill.load(open(dillpath))
                 else:
-                    qE2fitter, nofit = fit_all_grid_points(sl, config, use_cache=True, verbose=verbose)
+                    qE2fitter, nofit = fit_all_grid_points(sl, config,
+                                            use_cache=True, verbose=verbose)
                 pkl.dump((qE2fitter, nofit), open(path, 'wb'))
             nofits.append(nofit)
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
-                plot_resfits_on_grid(qE2fitter, sl, config, figsize=(10,10))
+                plot_resfits_on_grid(qE2fitter, sl, config, figsize=(10, 10))
                 plot.add_plot(width=pylatex.NoEscape(width))
                 plot.add_caption('Fitted resolution functions for %s' % sl.name)
                 plt.close()
@@ -225,7 +233,7 @@ def fit_all_in_one(config, verbose=False):
         save_fits_as_pickle(qE2fitter, pklfile)
         import pickle as pkl
         qE2fitres = pkl.load(open(pklfile, 'rb'))
-        
+
         # parameters
         with doc.create(pylatex.Subsection('Fitted parameters')):
             s = format_parameter_table(qE2fitres)
@@ -240,12 +248,13 @@ def fit_all_in_one(config, verbose=False):
             # plot
             with doc.create(pylatex.Figure(position='htbp')) as plot:
                 plt.figure()
-                plot_interpolated_resolution_on_grid(imodel, qs, Es, dqgrid, dEgrid, figsize=(10,10))
+                plot_interpolated_resolution_on_grid(imodel, qs, Es, dqgrid,
+                                                     dEgrid, figsize=(10, 10))
                 plot.add_plot(width=pylatex.NoEscape(width))
                 plot.add_caption('Interpolated resolution functions for %s' % sl.name)
                 plt.close()
             doc.append(pylatex.utils.NoEscape(r"\clearpage"))
-            
+
         # one by one comparison plots
         with doc.create(pylatex.Section('Comparing fits to mcvine simulations')):
             for qE, fitter in qE2fitter.items():
@@ -254,8 +263,8 @@ def fit_all_in_one(config, verbose=False):
                     plot.add_plot(width=pylatex.NoEscape(width))
                     plot.add_caption('Resolution at =%s, E=%s' % qE)
                     plt.close(fig)
-                doc.append(pylatex.utils.NoEscape(r"\clearpage")) # otherwise latex complain about "too many floats"
-                
+                doc.append(pylatex.utils.NoEscape(r"\clearpage"))  # otherwise latex complain about "too many floats"
+
         # save PDF
         doc.generate_pdf(clean_tex=False)
         continue
@@ -274,15 +283,16 @@ def create_convolution_calculator(slice, resolution_range=None):
     expansion_ratio = slice.convolution.expansion_ratio
     qticks = slice.expdata.grid.qaxis.ticks()
     hkl_start = slice.hkl0 + slice.hkl_projection*qticks[0]
-    hkl_end =  slice.hkl0 + slice.hkl_projection*qticks[-1]
+    hkl_end = slice.hkl0 + slice.hkl_projection*qticks[-1]
     perp_hkl_directions = slice.expdata.perp_hkl_directions
     perp_hkl_range = slice.expdata.perp_hkl_range
+
     def res_func(q, E):
         import os
         pwd = os.path.abspath(os.curdir)
         os.chdir(slice.resolution_datadir)
         imodel = get_interped_resolution_model(slice)
-        ret = imodel.getModel(q,E)
+        ret = imodel.getModel(q, E)
         os.chdir(pwd)
         return ret
     N_subpixels = slice.convolution.N_subpixels
@@ -291,31 +301,36 @@ def create_convolution_calculator(slice, resolution_range=None):
         dqticks = res_grid.qaxis.ticks()
         dEticks = res_grid.Eaxis.ticks()
         resolution_range = dqticks[-1]-dqticks[0], dEticks[-1]-dEticks[0]
-    convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio, N_subpixels, res_func, resolution_range, transpose_res_matrix=False)
+    convolver = cvv2.Convolver(grid, hkl_start, hkl_end, expansion_ratio,
+                               N_subpixels, res_func, resolution_range,
+                               transpose_res_matrix=False)
     slice.convolution.calculator = convolver
     if not _qEgrid_bigger_than(slice.grid, slice.convolution.calculator.finer_expanded_grid):
         sys.stderr.write("slice %s: Resolution calculation grid smaller than convolution expanded grid" % slice.name)
     return slice
+
 
 def _qEgrid_bigger_than(grid1, grid2):
     qticks1 = grid1.qaxis.ticks()
     qticks2 = (getattr(grid2, 'qaxis', None) or grid2.xaxis).ticks()
     Eticks1 = grid1.Eaxis.ticks()
     Eticks2 = (getattr(grid2, 'Eaxis', None) or grid2.yaxis).ticks()
-    return qticks1[0]<qticks2[0] and qticks1[-1]>qticks2[-1] \
-        and Eticks1[0]<Eticks2[0] and Eticks1[-1]>Eticks2[-1]
+    return qticks1[0] < qticks2[0] and qticks1[-1] > qticks2[-1] \
+        and Eticks1[0] < Eticks2[0] and Eticks1[-1] > Eticks2[-1]
 
 
 def get_interped_resolution_model(sl):
     if hasattr(sl, 'resolution_model'): return sl.resolution_model
     import pickle as pkl
-    qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name, 'rb'), encoding='latin1')
+    qE2fitres = pkl.load(open('%s-fit_results.pkl' % sl.name, 'rb'),
+                         encoding='latin1')
     qE2fitres = fill_in_blanks_for_fits(qE2fitres, sl)
     return create_interp_model(qE2fitres, sl)
 
+
 def fill_in_blanks_for_fits(qE2fitter, sl):
-    """due to limit of dynamical range measured, some grid points no data is available. 
-    has to fill in blanks at corners"""
+    """due to limit of dynamical range measured, some grid points no data 
+    is available. Has to fill in blanks at corners"""
     # find corners
     qticks = sl.grid.qaxis.ticks()
     qmin = qticks[0]; qmax = qticks[-1]
@@ -333,15 +348,15 @@ def fill_in_blanks_for_fits(qE2fitter, sl):
         found = False
         for E2 in Esearch:
             for q2 in qsearch:
-                if (q2,E2) in qE2fitter:
+                if (q2, E2) in qE2fitter:
                     found = True
                     break
             if found: break
         if found:
             qE2fitter[corner] = qE2fitter[(q2, E2)]
     return qE2fitter
-        
-                    
+
+
 def plotDynRange(hkl0, hkl_projection, qaxis, Erange, config):
     from mcvine.workflow.singlextal import dynrange
     from mcvine.workflow.sample import loadSampleYml
@@ -385,17 +400,19 @@ def simulate_all_grid_points(slice, config, Nrounds_beam=1, overwrite=False):
     failed = {}; outputs = {}
     for q in slice.grid.qaxis.ticks():
         for E in slice.grid.Eaxis.ticks():
-            simdir = config.simdir(q,E, slice)
+            simdir = config.simdir(q, E, slice)
             if os.path.exists(simdir):
                 if not overwrite: continue
                 shutil.rmtree(simdir)
             try:
-                outputs[(q,E)] = simulate(q=q, E=E, slice=slice, outdir=simdir, config=config, Nrounds_beam=Nrounds_beam)
+                outputs[(q, E)] = simulate(q=q, E=E, slice=slice,
+                                           outdir=simdir, config=config,
+                                           Nrounds_beam=Nrounds_beam)
             except sp.CalledProcessError as e:
-                failed[(q,E)] = e.output
+                failed[(q, E)] = e.output
             except:
                 import traceback as tb
-                failed[(q,E)] = tb.format_exc()
+                failed[(q, E)] = tb.format_exc()
         continue
     return outputs, failed
 
@@ -412,7 +429,7 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
         for icol in range(ncols):
             q = qs[icol]
             E = Es[nrows-irow-1]
-            simdir = config.simdir(q,E, slice)
+            simdir = config.simdir(q, E, slice)
             try:
                 probs = np.load('%s/probs.npy' % simdir)
             except IOError:
@@ -421,20 +438,22 @@ def plot_resolution_on_grid(slice, config, figsize=(10, 7)):
             dhkls = np.load('%s/dhkls.npy' % simdir)
             dqs = np.dot(dhkls, hkl_projection)/np.linalg.norm(hkl_projection)**2
             I, dqedges, dEedges = np.histogram2d(
-                bins=(res_2d_grid.qaxis.ticks(), res_2d_grid.Eaxis.ticks()), weights=probs, x=dqs, y=dEs )
+                bins=(res_2d_grid.qaxis.ticks(), res_2d_grid.Eaxis.ticks()),
+                weights=probs, x=dqs, y=dEs)
             dqg, dEg = np.meshgrid(dqedges, dEedges)
             ax1 = axes[irow][icol]
-            median = np.nanmedian(I[I>0])
-            good = I[I<median*200]
+            median = np.nanmedian(I[I > 0])
+            good = I[I < median*200]
             goodmax = good.max()
-            I[I>median*100] = goodmax
+            I[I > median*100] = goodmax
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             ax1.pcolormesh(dqg, dEg, I.T)
     plt.tight_layout()
     return
 
 
-def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multiprocess=True):
+def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,
+        multiprocess=True):
     """ function to perform a single fit to a a resolution ellipsoid.
         the file to fit must be in the working  directory 
         q is the q position of the given axis 
@@ -454,7 +473,7 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multipro
                 import dill
                 return dill.load(open(dillpath))
     from dgsres.singlextal import fit_ellipsoid
-    datadir = config.simdir(q,E,slice)
+    datadir = config.simdir(q, E, slice)
     qaxis = slice.res_2d_grid.qaxis
     Eaxis = slice.res_2d_grid.Eaxis
     fitter = fit_ellipsoid.Fit(
@@ -464,7 +483,7 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multipro
         Ei=config.Ei, E=E
     )
     fitter.load_mcvine_psf_qE(adjust_energy_center=True)
-    fitting_params = dict([(k,v) for k,v in slice.fitting.__dict__.items() if not k.startswith('_')])
+    fitting_params = dict([(k, v) for k, v in slice.fitting.__dict__.items() if not k.startswith('_')])
     fitting_params['multiprocess'] = multiprocess
     if extra_fitting_params: fitting_params.update(extra_fitting_params)
     fitter.fit_result = fitter.fit(**fitting_params)
@@ -473,40 +492,43 @@ def fit(q, E, slice, config, use_cache=False, extra_fitting_params=None,multipro
     return fitter
 
 
-def plot_compare_fit_to_data(fitter, figsize=(8,8)):
+def plot_compare_fit_to_data(fitter, figsize=(8, 8)):
     res_z = fitter.res_z
     qgrid, Egrid = fitter.qEgrids
     result = fitter.fit_result
-   
-    f,ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
-    #simulation plot
-    cax1 = ax[0,0].pcolormesh(qgrid, Egrid, res_z,shading='auto',rasterized=True)
-    ax[0,0].set_title('mcvine sim')
-    ax[0,0].set_xlabel(r'$Q-Q_0$ (rlu)')
-    ax[0,0].set_ylabel(r'$\omega-\omega_0$ (meV)')
-    f.colorbar(cax1,ax=ax[0,0])
+
+    f, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    # simulation plot
+    cax1 = ax[0, 0].pcolormesh(qgrid, Egrid, res_z, shading='auto',
+                               rasterized=True)
+    ax[0, 0].set_title('mcvine sim')
+    ax[0, 0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0, 0].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax1, ax=ax[0, 0])
     # fit plot
     scale = res_z.sum()/result.best_fit.sum()
     iqe_fit = result.best_fit.reshape(res_z.shape)*scale
-    cax2 = ax[0,1].pcolormesh(qgrid, Egrid, iqe_fit,shading='auto',rasterized=True)
-    ax[0,1].set_title('fit')
-    ax[0,1].set_xlabel(r'$Q-Q_0$ (rlu)')
-    ax[0,1].set_ylabel(r'$\omega-\omega_0$ (meV)')
-    f.colorbar(cax2,ax=ax[0,1])
-    
-    qs = qgrid[0]; Es = Egrid[:,0]
-    #plot Q cut
-    ax[1,0].plot(qs, res_z.sum(0), label='mcvine sim')
-    ax[1,0].plot(qs, iqe_fit.sum(0), label='fit')
-    ax[1,0].set_xlabel(r'$Q-Q_0$ (rlu)')
-    ax[1,0].legend()
-    #plot E cut
-    ax[1,1].plot(Es, res_z.sum(1), label='mcvine sim')
-    ax[1,1].plot(Es, iqe_fit.sum(1), label='fit')
-    ax[1,1].set_xlabel(r'$\omega-\omega_0$ (meV)')
-    ax[1,1].legend()
-    
+    cax2 = ax[0, 1].pcolormesh(qgrid, Egrid, iqe_fit, shading='auto',
+                               rasterized=True)
+    ax[0, 1].set_title('fit')
+    ax[0, 1].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[0, 1].set_ylabel(r'$\omega-\omega_0$ (meV)')
+    f.colorbar(cax2, ax=ax[0, 1])
+
+    qs = qgrid[0]; Es = Egrid[:, 0]
+    # plot Q cut
+    ax[1, 0].plot(qs, res_z.sum(0), label='mcvine sim')
+    ax[1, 0].plot(qs, iqe_fit.sum(0), label='fit')
+    ax[1, 0].set_xlabel(r'$Q-Q_0$ (rlu)')
+    ax[1, 0].legend()
+    # plot E cut
+    ax[1, 1].plot(Es, res_z.sum(1), label='mcvine sim')
+    ax[1, 1].plot(Es, iqe_fit.sum(1), label='fit')
+    ax[1, 1].set_xlabel(r'$\omega-\omega_0$ (meV)')
+    ax[1, 1].legend()
+
     return f
+
 
 def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
     qE2fitter = dict()
@@ -517,24 +539,24 @@ def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
             try:
                 fitter = fit(q, E, slice, config, use_cache=use_cache)
                 xp_center = fitter.fit_result.best_values['xp_center']
-                if np.abs(xp_center)>0.1: continue
-                qE2fitter[(q,E)] = fitter
+                if np.abs(xp_center) > 0.1: continue
+                qE2fitter[(q, E)] = fitter
             except:
                 if verbose:
                     import traceback as tb
                     tb.print_exc()
-                nofit.append((q,E))
+                nofit.append((q, E))
         continue
     # correct alpha
-    # in some cases, candidate values of alpha can be off by pi/2 but give very similar
-    # agreements between the model and the data.
-    # therefore, we need to go through the alpha values of all data and find the outliers,
-    # and change them by 90 degrees
+    # in some cases, candidate values of alpha can be off by pi/2 but give
+    # very similar agreements between the model and the data.
+    # therefore, we need to go through the alpha values of all data and find
+    #  the outliers, and change them by 90 degrees
     outliers = []
     # create an "image" of alpha values
     qticks = slice.grid.qaxis.ticks()
     Eticks = slice.grid.Eaxis.ticks()
-    alpha_image = np.ones( (len(qticks), len(Eticks)) ) * np.nan
+    alpha_image = np.ones((len(qticks), len(Eticks))) * np.nan
     for iq, q1 in enumerate(qticks):
         for iE, E1 in enumerate(Eticks):
             this = q1, E1
@@ -542,9 +564,10 @@ def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
             alpha_image[iq, iE] = qE2fitter[this].fit_result.best_values['alpha']
         continue
     # find outliers
-    N_alphas = (alpha_image==alpha_image).sum()
+    N_alphas = (alpha_image == alpha_image).sum()
     outliers, median = _find_outliers(alpha_image, .26*np.pi, Niter=5)
-    # for each outlier, change alpha value to something similar to neighbor values
+    # for each outlier, change alpha value to something similar to 
+    # neighbor values
     for iq, q1 in enumerate(qticks):
         for iE, E1 in enumerate(Eticks):
             if not outliers[iq, iE]: continue
@@ -559,16 +582,16 @@ def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
             )
             # choose the best one within the range
             results = fitter.fit_result
-            within_bounds  = lambda a: a<alpha_bounds[1] and a>alpha_bounds[0]
+            within_bounds = lambda a: a < alpha_bounds[1] and a > alpha_bounds[0]
             good_results = [r for r in results if within_bounds(r.best_values['alpha'])]
             if not good_results:
                 chisqs = [r.chisqr for r in results]
                 median_chisq = np.median(chisqs)
                 fr = None; max1 = None
                 for r in results:
-                    if r.chisqr >= median_chisq+1: continue
+                    if r.chisqr >= median_chisq + 1: continue
                     tocompare = np.abs(r.best_values['alpha']-median_alpha), r.chisqr
-                    if max1 is None or max1<tocompare:
+                    if max1 is None or max1 < tocompare:
                         max1, fr = tocompare, r
                     continue
                 fitter.fit_result = fr
@@ -576,28 +599,33 @@ def fit_all_grid_points(slice, config, use_cache=False, verbose=False):
                 fitter.fit_result = good_results[0]
             qE2fitter[this] = fitter
             print("   old alpha: %s. median alpha: %s. new alpha: %s" % (
-                old_alpha, median_alpha, fitter.fit_result.best_values['alpha']))
+                old_alpha, median_alpha,
+                fitter.fit_result.best_values['alpha']))
         continue
     #
     # qEranges is an import parameter that need to be rememberd
     fitter1 = list(qE2fitter.values())[0]
     slice.res_2d_grid.qEranges = fit_ellipsoid.qEgrid2range(*fitter1.qEgrids)
     for fitter in list(qE2fitter.values())[1:]:
-        assert np.allclose(slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids)), \
-            "qEranges mistmatch: %s vs %s" % (slice.res_2d_grid.qEranges, fit_ellipsoid.qEgrid2range(*fitter.qEgrids))
+        assert np.allclose(slice.res_2d_grid.qEranges,
+                           fit_ellipsoid.qEgrid2range(*fitter.qEgrids)), \
+            "qEranges mistmatch: %s vs %s" % (slice.res_2d_grid.qEranges,
+                                              fit_ellipsoid.qEgrid2range(*fitter.qEgrids))
     return qE2fitter, nofit
+
 
 def _find_outliers(img, max_deviation, Niter):
     img2 = img.copy()
     for i in range(Niter):
         outliers, median = _find_outliers_1(img2, max_deviation)
-        if outliers.sum()==0: break
+        if outliers.sum() == 0: break
         img2[outliers] = median[outliers]
-    return (img != img2)&(img==img), median
+    return (img != img2) & (img == img), median
+
 
 def _find_outliers_1(img, max_deviation):
     """find outliers in img
-    
+
     an outlier is defined as with value significantly different from the median value of its neighborhood
     `>max_deviation` means too different.
 
@@ -605,10 +633,11 @@ def _find_outliers_1(img, max_deviation):
     """
     # change image value range to 0-240. scikit image median does not work for random floats
     scale = 240; amax = np.nanmax(img); amin = np.nanmin(img)
-    img1 = img-amin; img1*=scale/(amax-amin) 
+    img1 = img-amin; img1 *= scale/(amax-amin) 
     from skimage.filters import median
     alpha_median = median(img1.astype('uint8'), mask=(img==img))
-    return np.abs(img1-alpha_median)>max_deviation*scale/(amax-amin), alpha_median*(amax-amin)/scale+amin
+    return np.abs(img1-alpha_median) > max_deviation*scale/(amax-amin), alpha_median*(amax-amin)/scale+amin
+
 
 def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
     qs = slice.grid.qaxis.ticks()
@@ -628,9 +657,12 @@ def plot_resfits_on_grid(qE2fitter, slice, config, figsize=(10, 7)):
             result = fitter.fit_result
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
-            ax1.pcolormesh(dqgrid, dEgrid, result.best_fit.reshape(dqgrid.shape),shading='auto',rasterized=True)
+            ax1.pcolormesh(dqgrid, dEgrid,
+                           result.best_fit.reshape(dqgrid.shape),
+                           shading='auto', rasterized=True)
     plt.tight_layout()
     return
+
 
 def save_fits_as_pickle(qE2fitter, path):
     qE2fitres_tosave = dict()
@@ -648,6 +680,7 @@ def save_fits_as_pickle(qE2fitter, path):
     pkl.dump(qE2fitres_tosave, open(path, 'wb'))
     return
 
+
 def format_parameter_table(qE2fitres):
     keys = list(qE2fitres.values())[0].best_values.keys()
     lines = []
@@ -657,18 +690,20 @@ def format_parameter_table(qE2fitres):
     qEs = list(qE2fitres.keys())
     qEs.sort(key=lambda x: (x[1],x[0]))
     for q, E in qEs:
-        if not (q,E) in qE2fitres: continue
-        result = qE2fitres[(q,E)]
-        line = "%6.1f%6.1f" % (q,E)
+        if not (q, E) in qE2fitres: continue
+        result = qE2fitres[(q, E)]
+        line = "%6.1f%6.1f" % (q, E)
         for k in keys:
             v = result.best_values[k]
             line += '%8.4f' % v
         lines.append(line)
     return '\n'.join(lines)
 
+
 def print_parameter_table(qE2fitres):
     s = format_parameter_table(qE2fitres)
     return s
+
 
 def create_interp_model(qE2fitres, slice):
     # Get parameters as lists, ready for interpolation
@@ -678,11 +713,11 @@ def create_interp_model(qE2fitres, slice):
     param_values = dict()
     for k in keys:
         param_values[k] = []
-    for q,E in qEs_all:
-        if (q,E) not in qE2fitres: continue
-        result = qE2fitres[(q,E)]
+    for q, E in qEs_all:
+        if (q, E) not in qE2fitres: continue
+        result = qE2fitres[(q, E)]
         bv = result.best_values
-        qE_points.append((q,E))
+        qE_points.append((q, E))
         for k in keys:
             vals = param_values[k]
             v = bv[k]
@@ -691,7 +726,9 @@ def create_interp_model(qE2fitres, slice):
     qrange, Erange = result.qEranges
     return fit_ellipsoid.InterpModel(qE_points, param_values, qrange, Erange)
 
-def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=(10,10)):
+
+def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid,
+                                         figsize=(10, 10)):
     ncols = len(qs)
     nrows = len(Es)
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
@@ -702,7 +739,7 @@ def plot_interpolated_resolution_on_grid(model, qs, Es, dqgrid, dEgrid, figsize=
             ax1 = axes[irow][icol]
             ax1.set_title("q=%.2f, E=%.2f" % (q, E))
             z = model.getModel(q=q, E=E).ongrid(dqgrid, dEgrid)
-            ax1.pcolormesh(dqgrid, dEgrid, z,shading='auto',rasterized=True)
+            ax1.pcolormesh(dqgrid, dEgrid, z, shading='auto', rasterized=True)
             continue
         continue
     plt.tight_layout()
