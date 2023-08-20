@@ -634,7 +634,7 @@ def _find_outliers_1(img, max_deviation):
     # change image value range to 0-240. scikit image median does not work for random floats
     scale = 240; amax = np.nanmax(img); amin = np.nanmin(img)
     img1 = img-amin; img1 *= scale/(amax-amin) 
-    from skimage.filters import median
+    from skimage.filters.rank import median
     alpha_median = median(img1.astype('uint8'), mask=(img==img))
     return np.abs(img1-alpha_median) > max_deviation*scale/(amax-amin), alpha_median*(amax-amin)/scale+amin
 
