@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.8"]
+        python-version: ["3.9"]
     steps:
       - name: install glut
         run: sudo apt-get update && sudo apt-get install -y freeglut3-dev libglu1-mesa
