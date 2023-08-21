@@ -55,7 +55,7 @@ jobs:
         shell: pwsh
         run: |
           conda install mamba
-          mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.15
+          mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.19
           mcvine
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
