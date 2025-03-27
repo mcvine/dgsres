@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     steps:
       - name: install glut
         run: sudo apt-get update && sudo apt-get install -y freeglut3-dev libglu1-mesa
@@ -29,7 +29,7 @@ jobs:
         run: sudo apt-get install -y texlive-latex-extra
 
       - name: Check out source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
@@ -44,19 +44,18 @@ jobs:
         run: git clone https://github.com/yxqd/dotmantid ~/.mantid
 
       # setup conda
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           activate-environment: test
           python-version: ${{ matrix.python-version }}
-          channels: mcvine,conda-forge
+          channels: mantid,mcvine,conda-forge
 
       # install deps
       - name: install deps
         shell: pwsh
         run: |
-          conda install mamba
-          mamba install mcvine mantid-framework=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.19
+          conda install mcvine mantid=6 pytest click=7 tqdm pylatex lmfit cloudpickle scikit-image=0.19
           mcvine
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
